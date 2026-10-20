@@ -61,7 +61,9 @@ async function refreshList(){
    const desc=document.createElement('p');desc.className='note';
    const providers={google:'구글 비밀번호 관리자',device:'기기 자체',security_key:'보안 키',unknown:'미확인'};
    desc.textContent='저장 위치: '+(providers[key.storageProvider]||'미확인')+' · ID: '+key.id.slice(0,16)+'…';
-   li.append(span,desc);list.append(li);
+   const publicPart=document.createElement('pre');publicPart.className='status evidence';
+   publicPart.textContent='서버 공개키(COSE/base64url): '+key.publicKey;
+   li.append(span,desc,publicPart);list.append(li);
   }
  }catch{say('패스키 목록을 확인하지 못했습니다. 초대 링크의 유효기간을 확인하세요.');}
 }
