@@ -55,21 +55,36 @@ Deno.serve(async(req)=>{
   if(error)return json({error:'storage_unavailable'},503);
   if(!keys?.length)return json({error:'account_has_no_passkeys'},409);
   if(keys.length>=10)return json({error:'too_many_passkeys'},409);
-  const options=await generateRegistrationOptions({
+  const mode=['google','device','security_key'].includes(String(input.storageProvider))
+    ? String(input.storageProvider):'';
+  if(!mode)return json({error:'storage_mode_required'},400);
+  // 'google' lets Chrome display its regular chooser (site cannot select a Google account).
+  // Local Windows Hello and roaming security-key modes are genuine WebAuthn
+  // authenticator criteria, not just labels in the site's UI.
+  const attachment: 'platform'|'cross-platform'|undefined =
+    mode==='security_key'?'cross-platform':mode==='device'?'platform':undefined;
+  const recommendedHints=mode==='security_key'?['security-key']:
+    mode==='device'?['client-device']:[];
+  const optionsBase=await generateRegistrationOptions({
    rpName:'내 소개 · 개인 자료실',rpID:RP,userName:'owner',userDisplayName:'Owner',
    userID:new TextEncoder().encode('t08-owner-v1'),
    attestationType:'none',supportedAlgorithmIDs:[-7,-257],
-   authenticatorSelection:{residentKey:'required',userVerification:'required'},
+   authenticatorSelection:{residentKey:'required',userVerification:'required',
+    ...(attachment?{authenticatorAttachment:attachment}:{})},
    timeout:120000,
    excludeCredentials:keys.map(k=>({id:k.credential_id,
     transports:Array.isArray(k.transports)?k.transports:undefined}))
   });
+  // Hints are UI preferences, not an enforceable choice of Google account or USB key.
+  // Always keep excludeCredentials to prevent adding the same authenticator again.
+  const options={...optionsBase,hints:recommendedHints};
   const {data:issued,error:saveError}=await db.from('t08_add_challenges')
-   .insert({challenge:options.challenge,session_hash:sessionHash,
+   .insert({challenge:options.challenge,session_hash:sessionHash,requested_mode:mode,
     expires_at:new Date(Date.now()+3*60*1000).toISOString()})
    .select('id').single();
   if(saveError||!issued)return json({error:'challenge_storage_failed'},503);
-  return json({options,challengeId:issued.id,challengeFingerprint:(await sha256(options.challenge)).slice(0,16)});
+  return json({options,requestedMode:mode,challengeId:issued.id,
+    challengeFingerprint:(await sha256(options.challenge)).slice(0,16)});
  }
  if(action==='remove'){
   const id=typeof input.credentialId==='string'?input.credentialId:'';
@@ -95,9 +110,11 @@ Deno.serve(async(req)=>{
    ?String(input.storageProvider):'unknown';
   const {data:issued,error}=await db.from('t08_add_challenges')
    .delete().eq('id',challengeId).eq('session_hash',sessionHash)
-   .gt('expires_at',new Date().toISOString()).select('challenge').maybeSingle();
+   .gt('expires_at',new Date().toISOString()).select('challenge,requested_mode').maybeSingle();
   if(error)return json({error:'storage_unavailable'},503);
   if(!issued)return json({error:'challenge_expired_or_consumed'},409);
+  if(String(input.storageProvider)!==issued.requested_mode)
+    return json({error:'selected_storage_mode_changed',passkeyStored:false},400);
   let verified;
   try{
    verified=await verifyRegistrationResponse({
@@ -118,8 +135,15 @@ Deno.serve(async(req)=>{
   });
   if(saveError){const [status,code]=classifyError(saveError.message);
    return json({error:code,passkeyStored:false},Number(status));}
+  // authenticatorAttachment is a browser-reported category, not proof of a
+  // specific physical vendor, device or Google account.
+  const claimedAttachment=(input.response&&typeof input.response==='object'
+    ?(input.response as {authenticatorAttachment?:unknown}).authenticatorAttachment:null);
+  const attachmentLabel=claimedAttachment==='platform'||claimedAttachment==='cross-platform'
+    ?claimedAttachment:'unknown';
   return json({verified:true,passkeyStored:true,credentialId:credential.id,
-   displayName:name,totalPasskeys:saved.count,privateKeyReceived:false});
+   displayName:name,totalPasskeys:saved.count,privateKeyReceived:false,
+   requestedMode:issued.requested_mode,reportedAttachment:attachmentLabel});
  }
  return json({error:'unknown_action'},400);
 });
