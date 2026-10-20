@@ -66,7 +66,7 @@ html{scroll-behavior:smooth}
 </style>
 </head>
 <body><div class="wrap">
-<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 4</span></header>
+<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 4·5</span></header>
 <div class="sessionRibbon" id="sessionRibbon" data-state="checking" role="region" aria-label="현재 사이트 로그인 상태">
   <div class="sessionIdentity">
     <span class="sessionDot" aria-hidden="true"></span>
@@ -81,7 +81,7 @@ html{scroll-behavior:smooth}
   </div>
 </div>
 <h1>공개 소개는 그대로, 내 기록은 따로</h1>
-<p class="lead">왼쪽 소개 페이지는 로그인 없이 열리는 공개 화면입니다. 오른쪽 자료실은 서명으로 확인된 사이트 계정(owner 또는 owner2)의 자료만 보여 줍니다. 카드 5 계정 분리 전에는 두 패스키 모두 owner 계정에 연결되어 있습니다.</p>
+<p class="lead">왼쪽 소개 페이지는 로그인 없이 열리는 공개 화면입니다. 오른쪽 자료실은 서명으로 확인된 사이트 계정(owner 또는 owner2)의 자료만 보여 줍니다. 별도 owner2 패스키가 등록되기 전에는 horse와 horse2 모두 owner 계정에 연결되어 있습니다.</p>
 <main class="grid">
 <section class="panel" aria-labelledby="public-title">
 <span class="tag">공개 영역 · 누구나 열람</span>
@@ -164,7 +164,7 @@ html{scroll-behavior:smooth}
 <h2 id="addSecondKeyTitle">새 패스키 등록 · 언제든 시작 가능</h2>
 <p class="note"><strong>이미 Google 계정이 2개 있다면:</strong> 아래 저장 위치에서 <strong>「다른 Google 계정(B)에 패스키 저장」</strong>을 선택한 뒤 기존 등록 버튼 하나만 누르세요. 별도 USB나 새 Google 계정은 필요 없습니다.</p>
 <p class="note">이름과 저장 위치는 로그인하지 않았어도 입력할 수 있습니다. 등록 버튼을 누르면 필요할 때 기존 horse로 인증하고 새 패스키를 생성합니다. 기존 패스키는 삭제되지 않습니다.</p>
-<p class="note">기본 owner 계정은 유지되고, 카드 5에서 사용자 동의로 분리하면 owner2가 독립적인 자료실을 갖습니다. Google 계정 B에 저장하려면 Chrome에서도 B 프로필을 사용해야 합니다. 현재 Google 관리자가 자체 PIN을 요구하는 것은 사이트에서 강제로 제거할 수 없습니다.</p>
+<p class="note">기본 owner의 horse와 horse2는 그대로 유지하고, 카드 5에서 세 번째 패스키를 만들면 별도 사이트 계정 owner2가 독립적인 자료실을 갖습니다. Google 계정 B에 저장하려면 Chrome에서도 B 프로필을 사용해야 합니다. 현재 Google 관리자가 자체 PIN을 요구하는 것은 사이트에서 강제로 제거할 수 없습니다.</p>
 <fieldset class="gatedFields" id="keyEnrollmentFields">
 <div class="registerGrid">
 <label for="additionalKeyName"><strong>새 패스키 이름</strong>
@@ -266,7 +266,7 @@ html{scroll-behavior:smooth}
 <p class="note">카드 2 최초 등록은 완료되었습니다. 이전 증거는 <a href="https://github.com/dfdfewqk/my-intro-passkey-t08/blob/main/CARD2.md" target="_blank" rel="noopener">CARD2.md</a>에서 확인할 수 있습니다.</p>
 </details>
 </section>
-<footer>이 화면과 소스에는 실제 연락처·신분증 번호·개인키·비공개 문서 본문을 넣지 않았습니다.</footer>
+<footer>이 화면과 소스에는 실제 연락처·신분증 번호·개인키·비공개 문서 본문을 넣지 않았습니다. · <a href="https://github.com/dfdfewqk/my-intro-passkey-t08/blob/main/CARD5.md" target="_blank" rel="noopener noreferrer">카드 5 인증 구현 설명서·검증 기록</a></footer>
 </div>
 <script>
 document.getElementById('check').addEventListener('click',async()=>{
