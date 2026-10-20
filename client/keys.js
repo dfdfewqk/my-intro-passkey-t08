@@ -44,7 +44,8 @@ function setKeyBusy(yes){
  keyEl('keyCancel').disabled=!yes;
  keyEl('keyAdd').disabled=yes||!keyAuthorized;
  keyEl('keyUnlock').disabled=yes;
- keyEl('keyEnrollmentFields').disabled=yes||!keyAuthorized;
+ // Keep the Cancel button reachable during an in-progress authenticator prompt.
+ keyEl('keyEnrollmentFields').disabled=!keyAuthorized;
 }
 function lockManagement(){
  ++inventoryRevision;
@@ -82,7 +83,7 @@ async function refreshKeys(){
  const keys=r.data.passkeys||[];
  keyAuthorized=true;
  keyEl('keyGate').hidden=true;
- keyEl('keyEnrollmentFields').disabled=keyOperationBusy;
+ keyEl('keyEnrollmentFields').disabled=false;
  keyEl('keyUnlock').disabled=false;
  const list=keyEl('keyListDetailed');
  list.replaceChildren();
