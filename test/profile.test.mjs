@@ -110,8 +110,9 @@ test('the normal card 4 registration form directly offers another existing Googl
  const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const keys=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
  const profile=fs.readFileSync(new URL('../client/profile.js',import.meta.url),'utf8');
- assert.ok(page.includes('<option value="google_other" selected>'));
- assert.ok(page.includes('다른 Google 계정(B)에 패스키 저장'));
+ assert.ok(page.includes('<option value="google_other">'));
+ assert.ok(page.includes('<option value="google" selected>'));
+ assert.ok(page.includes('지금 이 화면에서 새 패스키 만들기 (추천)'));
  const form=page.indexOf('id="additionalKeyProvider"');
  const panel=page.indexOf('id="googleProfilePanel"');
  const report=page.indexOf('등록·삭제 검증 기록');
