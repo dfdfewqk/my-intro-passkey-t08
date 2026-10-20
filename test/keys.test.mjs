@@ -149,7 +149,7 @@ test('independent Bitwarden extension mode requests native-compatible WebAuthn w
  assert.ok(server.includes("'phone','bitwarden','unknown'].includes"));
  assert.ok(server.includes("mode==='device'?'platform':undefined"));
  assert.ok(server.includes("mode==='device'?['client-device']:[]"));
- assert.ok(html.includes('value="google_other" selected'));
+ assert.ok(html.includes('value="google" selected'));
  assert.ok(html.includes('value="bitwarden"'));
  assert.ok(client.includes("mode==='bitwarden'"));
  assert.ok(client.includes("provider==='bitwarden'"));
