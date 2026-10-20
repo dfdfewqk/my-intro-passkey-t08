@@ -8,7 +8,7 @@ function harness({missingPrivate=false,outage=false}={}){
  let loggedIn=false,asks=0,privateReads=0,logins=0;
  const els=new Map(),listeners=new Map(),records=[];
  class Element{
-  constructor(){this.disabled=false;this.hidden=false;this.dataset={};this.textContent='';this.children=[];this.events={};}
+  constructor(){this.disabled=false;this.hidden=false;this.dataset={};this.textContent='';this.children=[];this.events={};this.style={};}
   addEventListener(t,fn){this.events[t]=fn;}
   replaceChildren(...children){this.children=children;}
   append(...children){this.children.push(...children);}
