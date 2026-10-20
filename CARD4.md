@@ -172,3 +172,8 @@ Google Password Manager 도움말: https://support.google.com/chrome/answer/1316
 - 등록 차단·중복 제외, 마지막 패스키 삭제 보호, 비공개 영역 HTTP 401은 그대로 유지.
 - 실제 테스트: npm test 53/53 통과, JavaScript 구문 검사 통과. Supabase 4개 Edge 함수 모두 ACTIVE 배포. 실서비스 로그인 옵션 userVerification discouraged 확인. 미인증 비공개 HTTP 401, 미인증 추가 등록 HTTP 401, 미인증 프로필 링크 발급 HTTP 401.
 - 실제 사용자의 인증 장치에서 PIN이 나타나는지 여부 및 신규 패스키 2개 등록 성공은 아직 기기 검증 전이다.
+
+
+## 2026-10-20 — 현재 등록 화면에서 두 번째 패스키 생성
+
+기존 Google 계정 A/B 선택 또는 별도 프로필을 필수로 요구하지 않고 카드 4의 기본 선택을 **지금 이 화면에서 새 패스키 만들기**로 바꿨습니다. 새 WebAuthn 등록마다 난수 user.id를 발급하고 challenge에 저장하므로 기존 horse 자격증명과 다른 키를 발급할 수 있도록 설계했습니다. 기존 패스키 전체를 제외하던 excludeCredentials는 해제했습니다. 서버의 credential ID 중복 저장 거절, 공개키 서명 검증, 일회용 challenge 및 owner 세션 검증은 유지합니다. WebAuthn 사용자 핸들은 키마다 다르지만 애플리케이션 DB의 owner 계정은 여전히 1개입니다. 기존 horse는 삭제하지 않습니다. 실제 브라우저에서 새로운 키 생성이 되는지는 별도로 확인해야 합니다.

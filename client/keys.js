@@ -212,7 +212,7 @@ async function addPasskey(){
    ?'외장 USB/NFC 보안 키 모드를 요청했습니다. 실제 보안 키를 연결하고 Chrome 창에서 보안 키를 선택하세요. 다른 Google 계정은 USB 보안 키가 아닙니다.'
    :provider==='device'
    ?'기기 내장 인증 방식(Windows Hello 등)을 요청했습니다. 구글 관리자가 나타난다면 Windows Hello/다른 인증 방법을 직접 선택해야 할 수 있습니다.'
-   :'브라우저의 Google 비밀번호 관리자 선택 화면입니다. 사이트에서는 어떤 Google 계정에 저장할지 직접 지정할 수 없습니다.';
+   :'현재 브라우저에서 새로운 패스키를 만드는 중입니다. horse2에는 기존 horse와 다른 등록 ID가 발급됩니다. 패스키 저장 위치는 브라우저가 결정합니다.';
   sayKeys(guidance+' 새 패스키 생성이 완료될 때만 서버에 공개키가 추가됩니다.');
   waiter=new AbortController();
   const credential=await navigator.credentials.create({
@@ -319,7 +319,7 @@ function updateProviderHelp(){
   :mode==='device'
   ?'이 PC 장치: Windows Hello 같은 플랫폼 인증기를 우선 요청합니다. Chrome이 Google 비밀번호 관리자를 제안하면 브라우저 창에서 다른 인증 방법을 확인하세요.'
   :mode==='google'
-  ?'Google 비밀번호 관리자: 어떤 Google 계정을 사용할지는 사이트가 지정할 수 없습니다. 이미 등록된 horse가 있는 동일 저장소로 다시 연결되면 중복 등록이 거절됩니다.'
+  ?'현재 브라우저에서 직접 생성: 새 패스키는 이전 horse와 다른 WebAuthn 등록 ID로 발급됩니다. 서버는 두 키를 같은 사이트 owner 계정에 연결합니다. Google·Windows의 자체 잠금 해제 요구는 별도입니다.'
   :'저장 위치를 선택하세요. 선택 항목은 등록 요청에 반영되지만, 최종 기기·계정 선택은 브라우저가 결정할 수 있습니다.';
  keyEl('keyProviderHelp').textContent=message;
 }
