@@ -46,8 +46,13 @@ export default async function handler(req,res){
   const session=getSession(req);
   let result={status:401,data:{error:'authentication_required'}};
   if(session)result=await edge('logout',{session});
+  // Demonstrate C33 server-side: reuse the very same opaque session after revocation.
+  // Neither cookie contents nor token hashes leave the server response.
+  const replay=session&&result.status===200?await edge('validate',{session}):null;
   clearCookie(res);
-  return res.status(result.status).json(result.status===200?{loggedOut:true}:{...result.data,loggedOut:false});
+  return res.status(result.status).json(result.status===200?
+    {loggedOut:true,reuseStatus:replay?.status??null,sessionRedacted:'[REDACTED]'}:
+    {...result.data,loggedOut:false});
  }
  if(action==='options'||action==='cancel'){
   const fields=action==='cancel'?{challengeId:body.challengeId}:{};
