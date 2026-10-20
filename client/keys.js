@@ -190,7 +190,7 @@ async function addPasskey(){
   const attachment=issued.data.options.authenticatorSelection?.authenticatorAttachment||'브라우저 자동 선택';
   const hints=issued.data.options.hints||[];
   addEvidence('추가 등록 질문 HTTP 200 · 지문 '+issued.data.challengeFingerprint+
-   ' · 새 자격증명에 독립 사용자 ID 발급'+`+`' · 기존 자격증명 덮어쓰기 방지'+
+   ' · 새 자격증명에 독립 사용자 ID 발급 · 기존 자격증명 덮어쓰기 방지'+
    ' · 요청 저장 방식 '+requested+' · authenticatorAttachment '+attachment+
    ' · hints '+(hints.join(',')||'없음'));
   const guidance=provider==='bitwarden'

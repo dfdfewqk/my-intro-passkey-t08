@@ -42,8 +42,12 @@ test('replay protection, server sessions, duplicate protection and proof of poss
  assert.ok(files.login.includes("delete().eq('id',challengeId)"));
  assert.ok(files.login.includes("t08_open_login_session"));
  assert.ok(files.login.includes('counter:Number(keyRow.counter)'));
- assert.ok(files.additional.includes('excludeCredentials:keys.map'));
- assert.ok(files.profile.includes('excludeCredentials:keys.map'));
+ assert.ok(files.additional.includes('registration_user_handle:registrationHandle64'));
+ assert.ok(files.profile.includes('registration_user_handle:handleEncoded'));
+ assert.ok(files.additional.includes('p_user_handle:issued.registration_user_handle'));
+ assert.ok(files.profile.includes('p_user_handle:row.registration_user_handle'));
+ assert.ok(!files.additional.includes('excludeCredentials:keys.map'));
+ assert.ok(!files.profile.includes('excludeCredentials:keys.map'));
  assert.ok(files.profile.includes("'t08_finalize_profile_enrollment'"));
 });
 test('site explains provider PIN policy cannot be overridden',()=>{
