@@ -158,3 +158,17 @@
 
 Google Chrome 공식 프로필 안내: https://support.google.com/chrome/answer/2364824
 Google Password Manager 도움말: https://support.google.com/chrome/answer/13168025
+
+## 2026-10-20 — 사이트에서 PIN 인증 요구 선택 사항으로 변경
+
+사용자가 명시적으로 PIN 입력 강제를 요구하지 않으며, 과제 카드 1~4도 PIN 사용 자체를 필수 기준으로 명시하지 않아 사이트 서버의 인증 정책을 변경했다.
+
+- WebAuthn 패스키 등록 세 가지 경로: 최초 등록, 로그인 후 추가 등록, Chrome 프로필 A→B 일회성 링크 등록에서 authenticatorSelection.userVerification을 discouraged로 변경.
+- 기존 패스키의 동기화 및 discoverable credential 지원을 유지하기 위해 residentKey는 required에서 preferred로 변경.
+- 서버 verifyRegistrationResponse는 requireUserPresence:true를 유지하고 requireUserVerification:false로 변경. 일회용 challenge, origin, RP ID 및 서명·공개키 확인 유지.
+- 로그인 generateAuthenticationOptions는 userVerification discouraged를 요청하며 verifyAuthenticationResponse는 requireUserVerification:false로 변경. 기존 서명 검증, 사용자 존재 여부, 서명 카운터 검사, 일회용 challenge 폐기, 서버 세션 발급·검증 유지.
+- 보안 영향: 소유자 PIN·생체인증 필수 조건을 사이트가 없앴기 때문에 인증기가 사용자 확인 없이 허용하면 기존보다 기기 내부 사용자 확인 강도가 낮아질 수 있다. 고가치 서비스에서는 userVerification required 설정이 더 적절할 수 있다.
+- 주의: Google 비밀번호 관리자/Windows/Bitwarden 등 인증기 제공자는 사이트 설정과 무관하게 자체 PIN 또는 생체인증을 계속 요구할 수 있다. 사이트는 그 PIN 창을 숨기거나 자동으로 우회할 수 없다.
+- 등록 차단·중복 제외, 마지막 패스키 삭제 보호, 비공개 영역 HTTP 401은 그대로 유지.
+- 실제 테스트: npm test 53/53 통과, JavaScript 구문 검사 통과. Supabase 4개 Edge 함수 모두 ACTIVE 배포. 실서비스 로그인 옵션 userVerification discouraged 확인. 미인증 비공개 HTTP 401, 미인증 추가 등록 HTTP 401, 미인증 프로필 링크 발급 HTTP 401.
+- 실제 사용자의 인증 장치에서 PIN이 나타나는지 여부 및 신규 패스키 2개 등록 성공은 아직 기기 검증 전이다.

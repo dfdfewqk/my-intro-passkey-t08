@@ -97,3 +97,11 @@ npm test
 ## 다른 Google 계정 B에 horse2 저장
 
 [Chrome 프로필 B 등록 링크 발급](https://my-intro-t08.vercel.app/#googleProfilePanel)에서 A의 horse로 로그인 후 5분짜리 1회용 링크를 발급해 B의 별도 Chrome 프로필에서 새 패스키를 등록할 수 있습니다. Google 계정 자체를 웹사이트가 선택하지는 못합니다. 기존 사이트 owner 계정은 하나이며 기존 horse 유지. 48/48 자동 테스트 통과, 실제 Google B 등록은 아직 미검증. [CARD4.md](CARD4.md) 참조.
+
+## 사이트 PIN 사용자 확인 요구 완화
+
+이 사이트는 WebAuthn 로그인과 등록에서 userVerification discouraged를 요청하며, requireUserVerification false로 유효한 서명을 검증한다. 패스키 사용자 존재 표시와 공개키 서명, challenge, RP ID 및 출처 검사는 계속 필수이다.
+
+**Google 또는 운영체제가 자체 PIN 입력을 요청하면 사이트에서 없앨 수 없다.** PIN 요구를 없앴다는 표현은 사이트의 필수 요구를 없앤 것이지 모든 기기에서 PIN 없는 사용을 보장한다는 뜻이 아니다. 자세한 보안 설명은 [CARD4.md](CARD4.md) 참고.
+
+2026-10-20 자동 테스트 53/53 통과, 실서비스 로그인 발급 옵션 userVerification discouraged 확인.
