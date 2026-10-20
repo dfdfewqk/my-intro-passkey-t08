@@ -113,7 +113,7 @@ html{scroll-behavior:smooth}
 <hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
 <h2 id="addSecondKeyTitle">새 패스키 등록 · 언제든 시작 가능</h2>
 <p class="note">이름과 저장 위치는 로그인하지 않았어도 입력할 수 있습니다. 등록 버튼을 누르면 필요할 때 기존 horse로 인증하고 새 패스키를 생성합니다. 기존 패스키는 삭제되지 않습니다.</p>
-<p class="note">기존 <strong>horse</strong> 패스키는 그대로 보존합니다. 같은 Google 비밀번호 관리자에 동기화된 키는 두 개로 세지 않습니다. 기존 저장소가 중복으로 거절된다면 <strong>다른 휴대전화 · QR코드</strong>를 먼저 시도할 수 있습니다. 저장 장치 선택은 브라우저에 요청하지만 실제 장치·Google 계정을 강제로 지정할 수는 없습니다.</p>
+<p class="note">기존 <strong>horse</strong> 패스키는 그대로 보존합니다. Google 관리자가 새 패스키 생성을 계속 가로채면 <strong>별도의 Bitwarden 패스키 관리자 확장 프로그램</strong>을 사용해 horse2를 만들 수 있습니다. Bitwarden 가입 이메일은 네이버 이메일이어도 됩니다. 사이트가 어느 앱에 저장할지는 강제할 수 없으므로 Bitwarden 저장 창을 직접 확인해야 합니다.</p>
 <fieldset class="gatedFields" id="keyEnrollmentFields">
 <div class="registerGrid">
 <label for="additionalKeyName"><strong>새 패스키 이름</strong>
@@ -121,13 +121,14 @@ html{scroll-behavior:smooth}
 <label for="additionalKeyProvider"><strong>실제 저장 위치</strong>
 <select id="additionalKeyProvider">
 <option value="">저장 위치 선택</option>
+<option value="bitwarden" selected>Bitwarden 확장 프로그램 · USB/Google 계정 추가 불필요</option>
 <option value="phone">다른 휴대전화 연결 시도 · QR 제공은 브라우저에 따라 다름</option>
 <option value="device">이 PC 인증 장치 · Windows Hello 우선</option>
 <option value="google">Google 비밀번호 관리자 (계정 선택은 Chrome에서)</option>
 <option value="security_key">별도 물리 보안 키 · USB/NFC 장치 필요</option>
 </select></label>
 </div>
-<p id="keyProviderHelp" class="note" aria-live="polite">주의: Windows가 USB 보안 키를 요구하면 휴대전화 인증이 아닙니다. USB가 없으면 취소하세요. 사이트에서 QR 창을 강제로 열 수 없으며, 해당 PC에서 QR을 지원하지 않으면 휴대전화 자체에서 사이트를 열어 등록해야 할 수 있습니다.</p>
+<p id="keyProviderHelp" class="note" aria-live="polite">추천: 기존 horse는 Google에 유지하고 새 horse2는 Bitwarden 확장 프로그램에 저장합니다. Bitwarden 계정은 네이버 등 기존 이메일로 가입할 수 있으며, 실제 Bitwarden 저장 창이 나오는지 확인해야 합니다. 확장 프로그램이 없으면 Google/USB 창으로 연결될 수 있습니다. <a href="https://bitwarden.com/help/storing-passkeys/" target="_blank" rel="noopener noreferrer">Bitwarden 공식 안내</a></p>
 <div class="actions">
 <button class="button" type="button" id="keyAdd">패스키 추가 등록</button>
 <button class="button secondary" type="button" id="keyCancel" disabled>등록 취소</button>

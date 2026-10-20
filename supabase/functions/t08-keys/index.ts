@@ -55,7 +55,7 @@ Deno.serve(async(req)=>{
   if(error)return json({error:'storage_unavailable'},503);
   if(!keys?.length)return json({error:'account_has_no_passkeys'},409);
   if(keys.length>=10)return json({error:'too_many_passkeys'},409);
-  const mode=['google','device','security_key','phone'].includes(String(input.storageProvider))
+  const mode=['google','device','security_key','phone','bitwarden'].includes(String(input.storageProvider))
     ? String(input.storageProvider):'';
   if(!mode)return json({error:'storage_mode_required'},400);
   // 'google' lets Chrome display its regular chooser (site cannot select a Google account).
@@ -76,6 +76,9 @@ Deno.serve(async(req)=>{
    excludeCredentials:keys.map(k=>({id:k.credential_id,
     transports:Array.isArray(k.transports)?k.transports:undefined}))
   });
+  // The 'bitwarden' mode also deliberately requests no attachment/hints: the
+  // user's installed password manager extension can intercept navigator.credentials.create.
+  // Merely selecting a UI entry cannot force an extension or prove the provider.
   // The 'phone' mode deliberately avoids forcing cross-platform attachment.
   // Windows' native security dialog can otherwise default to USB keys,
   // while 'hybrid' remains only an advisory browser hint, not a QR guarantee.
@@ -110,7 +113,7 @@ Deno.serve(async(req)=>{
  if(action==='verify'){
   const name=typeof input.name==='string'?input.name.trim():'';
   if(name.length<2||name.length>48)return json({error:'invalid_display_name'},400);
-  const storageProvider=['google','device','security_key','phone','unknown'].includes(String(input.storageProvider))
+  const storageProvider=['google','device','security_key','phone','bitwarden','unknown'].includes(String(input.storageProvider))
    ?String(input.storageProvider):'unknown';
   const {data:issued,error}=await db.from('t08_add_challenges')
    .delete().eq('id',challengeId).eq('session_hash',sessionHash)

@@ -138,3 +138,20 @@ test('phone registration passes the selected mode using the existing authorized 
   assert.deepEqual(data.json.options.hints,['hybrid']);
  }finally{globalThis.fetch=original;}
 });
+
+
+test('independent Bitwarden extension mode requests native-compatible WebAuthn without external hardware',async()=>{
+ const fs=await import('node:fs');
+ const server=fs.readFileSync(new URL('../supabase/functions/t08-keys/index.ts',import.meta.url),'utf8');
+ const client=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.ok(server.includes("'phone','bitwarden'].includes"));
+ assert.ok(server.includes("'phone','bitwarden','unknown'].includes"));
+ assert.ok(server.includes("mode==='device'?'platform':undefined"));
+ assert.ok(server.includes("mode==='device'?['client-device']:[]"));
+ assert.ok(html.includes('value="bitwarden" selected'));
+ assert.ok(client.includes("mode==='bitwarden'"));
+ assert.ok(client.includes("provider==='bitwarden'"));
+ assert.ok(server.includes('excludeCredentials:keys.map'));
+ assert.ok(server.includes('requested_mode:mode'));
+});

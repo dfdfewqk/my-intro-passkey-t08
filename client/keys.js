@@ -5,7 +5,7 @@ let inventoryRevision=0;
 let keyOperationBusy=false;
 const evidence=[];
 const providerLabels={google:'구글 비밀번호 관리자',device:'기기 자체 / Windows Hello',
- phone:'다른 휴대전화 / QR 인증',security_key:'외장 보안 키',unknown:'저장 위치 미확인'};
+ phone:'다른 휴대전화 / QR 인증',security_key:'외장 보안 키',bitwarden:'Bitwarden 브라우저 확장 프로그램',unknown:'저장 위치 미확인'};
 function sayKeys(t){keyEl('keyManagementMessage').textContent=t;}
 function addEvidence(t){evidence.push(new Date().toLocaleTimeString('ko-KR')+' | '+t);
  keyEl('keyManagementEvidence').textContent=evidence.slice(-15).join('\n');}
@@ -193,7 +193,9 @@ async function addPasskey(){
    ' · 기존 패스키 제외 '+(issued.data.options.excludeCredentials?.length||0)+'개'+
    ' · 요청 저장 방식 '+requested+' · authenticatorAttachment '+attachment+
    ' · hints '+(hints.join(',')||'없음'));
-  const guidance=provider==='phone'
+  const guidance=provider==='bitwarden'
+   ?'Bitwarden 확장 프로그램에 로그인하고 설정에서 패스키 저장/사용 요청을 켜세요. Bitwarden 저장 창이 나오면 새 자격증명을 저장합니다. Google 또는 USB 창이 뜨면 취소하세요. 사이트는 저장소를 강제로 선택할 수 없습니다.'
+   :provider==='phone'
    ?'휴대전화 인증을 안내하는 hybrid 힌트를 요청했습니다. Windows가 USB 보안 키 삽입 창을 띄우면 그 창은 휴대전화 연결이 아닙니다. USB가 없다면 취소하세요. 이 Windows 환경에서 QR이 제공되지 않을 수 있으며, 그 경우 휴대전화 브라우저에서 사이트를 직접 여는 방법을 검토해야 합니다.'
    :provider==='security_key'
    ?'외장 USB/NFC 보안 키 모드를 요청했습니다. 실제 보안 키를 연결하고 Chrome 창에서 보안 키를 선택하세요. 다른 Google 계정은 USB 보안 키가 아닙니다.'
@@ -295,7 +297,9 @@ async function probeDeleted(){
 }
 function updateProviderHelp(){
  const mode=keyEl('additionalKeyProvider').value;
- const message=mode==='phone'
+ const message=mode==='bitwarden'
+  ?'USB·QR·Google 계정 추가 없이 새 패스키를 만드는 대안입니다. 먼저 Bitwarden Chrome 확장 프로그램을 설치·로그인하고 「패스키 저장/사용 요청」을 켜세요. 이 선택만으로 Bitwarden으로 자동 전환되지는 않으며 실제 Bitwarden 저장 창을 확인해야 합니다.'
+  :mode==='phone'
   ?'휴대전화 연결은 브라우저에 hybrid 방식으로 요청만 할 수 있습니다. Windows에서 USB 보안 키 삽입 창이 나오면 해당 경로는 휴대전화 QR이 아닙니다. USB를 연결하지 말고 취소하세요. QR 지원 여부는 Windows/브라우저가 결정하며, 웹사이트에서 강제로 열 수 없습니다.'
   :mode==='security_key'
   ?'외장 보안 키: 실제 USB/NFC FIDO2 장치가 있어야 합니다. 서버가 cross-platform과 security-key를 요청하지만 브라우저 선택창은 환경에 따라 다를 수 있습니다.'
