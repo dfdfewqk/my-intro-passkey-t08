@@ -110,7 +110,8 @@ test('phone option requests hybrid smartphone credential and binds the requested
  const client=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(html,/<option value="phone">/);
- assert.ok(edge.includes("'phone'?'cross-platform'"));
+ assert.ok(edge.includes("mode==='security_key'?'cross-platform':mode==='device'?'platform':undefined"));
+ assert.ok(!edge.includes("mode==='security_key'||mode==='phone'?'cross-platform'"));
  assert.ok(edge.includes("mode==='phone'?['hybrid']"));
  assert.ok(edge.includes('excludeCredentials:keys.map'));
  assert.ok(edge.includes('requested_mode:mode'));
@@ -118,7 +119,9 @@ test('phone option requests hybrid smartphone credential and binds the requested
  assert.ok(edge.includes("'phone','unknown'"));
  assert.ok(client.includes("provider==='phone'"));
  assert.ok(client.includes("mode==='phone'"));
- assert.ok(client.includes('QR코드'));
+ assert.ok(client.includes('USB 보안 키 삽입 창'));
+ assert.ok(client.includes('QR'));
+ assert.ok(html.includes('USB 보안 키'));
 });
 test('phone registration passes the selected mode using the existing authorized API',async()=>{
  const original=globalThis.fetch;let body;

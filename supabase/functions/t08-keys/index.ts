@@ -62,7 +62,7 @@ Deno.serve(async(req)=>{
   // Local Windows Hello and roaming security-key modes are genuine WebAuthn
   // authenticator criteria, not just labels in the site's UI.
   const attachment: 'platform'|'cross-platform'|undefined =
-    mode==='security_key'||mode==='phone'?'cross-platform':mode==='device'?'platform':undefined;
+    mode==='security_key'?'cross-platform':mode==='device'?'platform':undefined;
   const recommendedHints=mode==='phone'?['hybrid']:
     mode==='security_key'?['security-key']:
     mode==='device'?['client-device']:[];
@@ -76,8 +76,10 @@ Deno.serve(async(req)=>{
    excludeCredentials:keys.map(k=>({id:k.credential_id,
     transports:Array.isArray(k.transports)?k.transports:undefined}))
   });
-  // Hints are recommendations and may be ignored by Chrome. Hybrid favors a
-  // nearby phone (e.g., QR cross-device flow) but is not a vendor guarantee.
+  // The 'phone' mode deliberately avoids forcing cross-platform attachment.
+  // Windows' native security dialog can otherwise default to USB keys,
+  // while 'hybrid' remains only an advisory browser hint, not a QR guarantee.
+  // A separate device may need to open the URL directly for enrollment.
   // Always keep excludeCredentials to prevent adding the same authenticator again.
   const options={...optionsBase,hints:recommendedHints};
   const {data:issued,error:saveError}=await db.from('t08_add_challenges')

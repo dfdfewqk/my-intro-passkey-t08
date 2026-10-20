@@ -194,7 +194,7 @@ async function addPasskey(){
    ' · 요청 저장 방식 '+requested+' · authenticatorAttachment '+attachment+
    ' · hints '+(hints.join(',')||'없음'));
   const guidance=provider==='phone'
-   ?'휴대전화로 등록하도록 hybrid 방식을 요청했습니다. Chrome에서 휴대전화·QR코드 항목이 나타나면 기존 horse가 없는 별도의 휴대전화 패스키 저장소를 선택하세요. 스마트폰에서도 같은 Google 패스키를 선택하면 중복될 수 있습니다.'
+   ?'휴대전화 인증을 안내하는 hybrid 힌트를 요청했습니다. Windows가 USB 보안 키 삽입 창을 띄우면 그 창은 휴대전화 연결이 아닙니다. USB가 없다면 취소하세요. 이 Windows 환경에서 QR이 제공되지 않을 수 있으며, 그 경우 휴대전화 브라우저에서 사이트를 직접 여는 방법을 검토해야 합니다.'
    :provider==='security_key'
    ?'외장 USB/NFC 보안 키 모드를 요청했습니다. 실제 보안 키를 연결하고 Chrome 창에서 보안 키를 선택하세요. 다른 Google 계정은 USB 보안 키가 아닙니다.'
    :provider==='device'
@@ -296,7 +296,7 @@ async function probeDeleted(){
 function updateProviderHelp(){
  const mode=keyEl('additionalKeyProvider').value;
  const message=mode==='phone'
-  ?'다른 휴대전화: Chrome에 hybrid(휴대전화 연결) 방식을 요청합니다. QR코드가 나오면 휴대전화로 스캔하고 화면 안내를 따르세요. 다른 인증 저장소를 선택해야 두 번째 패스키가 됩니다. QR 제공은 브라우저/기기에 따라 달라질 수 있습니다.'
+  ?'휴대전화 연결은 브라우저에 hybrid 방식으로 요청만 할 수 있습니다. Windows에서 USB 보안 키 삽입 창이 나오면 해당 경로는 휴대전화 QR이 아닙니다. USB를 연결하지 말고 취소하세요. QR 지원 여부는 Windows/브라우저가 결정하며, 웹사이트에서 강제로 열 수 없습니다.'
   :mode==='security_key'
   ?'외장 보안 키: 실제 USB/NFC FIDO2 장치가 있어야 합니다. 서버가 cross-platform과 security-key를 요청하지만 브라우저 선택창은 환경에 따라 다를 수 있습니다.'
   :mode==='device'
