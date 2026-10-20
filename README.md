@@ -45,13 +45,20 @@ curl -i https://<Vercel-도메인>/api/status
 
 ## 과제 제출 초안 (카드 1 시점)
 
-- 어디로 가나요: 새 Vercel 결과물 / 에서 비공개 영역 및 검사 버튼을 엽니다.
+- 어디로 가나요: https://my-intro-t08.vercel.app/ 에서 비공개 영역 및 검사 버튼을 엽니다.
 - 세 단계 안에 무엇을 하나요: ① 비공개 영역 확인 ② API 상태 검사 클릭 ③ 페이지 소스와 직접 API 응답 검사
 - 무엇이 보이면 통과인가요: 원본 공개 소개는 열리고 보호 API 응답은 401이며 소스에 더미 본문이 없습니다.
 - 안 될 때는 무엇이 보이나요: 401이 아닌 HTTP 코드/연결 실패 메시지가 표시됩니다.
 
 AI와 내 판단 3줄은 본인이 한 실제 판단이 확인된 뒤 최종 제출에서 작성해야 합니다.
 
+
+## 배포 주소
+
+- 공개 결과물: https://my-intro-t08.vercel.app/
+- 비공개 API: https://my-intro-t08.vercel.app/api/private (미인증 시 HTTP 401 의도)
+- 공개 상태 API: https://my-intro-t08.vercel.app/api/status
+- 배포 확인: Vercel 프로덕션 빌드 READY. 실제 배포 HTTP 응답의 외부 도구 검증은 별도 필요.
 
 ## 저장소 분리
 
