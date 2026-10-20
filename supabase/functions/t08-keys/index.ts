@@ -45,12 +45,7 @@ Deno.serve(async(req)=>{
  .select('credential_id').eq('credential_id',active.credential_id).eq('owner_id',active.owner_id).maybeSingle();
  if(activeKeyErr)return json({error:'storage_unavailable'},503);
  if(!key)return json({error:'session_expired_or_revoked'},401);
- if(input.action==='split'){
-  if(active.owner_id!==1)return json({error:'wrong_account_for_split'},403);
-  const {data,error}=await db.rpc('t08_split_horse2_to_owner2',{p_session_hash:sessionHash});
-  if(error){const [status,code]=classifyError(error.message);return json({error:code},Number(status));}
-  return json({...data,oldSessionInvalidated:true});
- }
+
  const action=input.action;
  if(action==='list'){
   const {data,error}=await db.from('t08_passkeys')

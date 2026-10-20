@@ -15,7 +15,7 @@ export default async function handler(req,res){
  if(!body||typeof body!=='object'||Array.isArray(body)||JSON.stringify(body).length>45000)
   return res.status(400).json({error:'invalid_json'});
  const action=body.action;
- if(!['list','options','verify','cancel','remove','split'].includes(action))
+ if(!['list','options','verify','cancel','remove'].includes(action))
   return res.status(400).json({error:'unknown_action'});
  const allowed={action,session};
  if(action==='verify'){
