@@ -101,8 +101,14 @@ async function updateStatus(){
  return ok;
 }
 async function login(){
+ if(state.busy){
+  report('패스키 로그인 확인이 진행 중입니다. 기기 화면을 먼저 완료하세요.');
+  return false;
+ }
  if(!window.isSecureContext||!navigator.credentials?.get){
-  report('HTTPS와 WebAuthn이 지원되는 브라우저에서 실행하세요.');return;}
+  report('HTTPS와 WebAuthn을 지원하는 브라우저에서 실행하세요.');
+  return false;
+ }
  busy(true);
  try{
   const issued=await issue();
@@ -116,12 +122,20 @@ async function login(){
   log('실제 WebAuthn 서명 검증',result.code,result.code===200?'성공 · 세션 값 [가림]':result.data.error||'거절');
   if(result.code!==200||!result.data.signatureVerified)throw Error(result.data.error||'signature_invalid');
   byId('sessionProof').textContent='인증: 서명 검증 성공 / 방식: 서버 세션 / 보관: HttpOnly·Secure·SameSite=Strict 쿠키 / 세션 값: [가림]';
-  report('패스키 로그인 성공! 비공개 자료를 서버에서 가져옵니다.');
-  await updateStatus();
+  report('패스키 로그인 성공! 인증 세션을 확인합니다.');
+  const authenticated=await updateStatus();
+  if(!authenticated){
+    report('서명은 확인됐지만 서버 세션이 연결되지 않았습니다. 쿠키 차단 여부와 주소를 확인하세요.');
+    return false;
+  }
+  return true;
  }catch(e){
   if(state.active)await cancelCurrent().catch(()=>{});
-  report(['NotAllowedError','AbortError'].includes(e.name)||e.message==='user_canceled'
-   ?'로그인을 취소했습니다. 비공개 자료는 열리지 않습니다.':'로그인 실패: '+e.message);
+  const wasCanceled=['NotAllowedError','AbortError'].includes(e.name)||e.message==='user_canceled';
+  report(wasCanceled
+   ?'패스키 로그인 창이 취소되었거나 사용할 패스키를 선택하지 못했습니다. 기존 horse 패스키가 저장된 관리자를 선택해 다시 시도하세요.'
+   :'패스키 로그인 실패 ('+(e.name||'Error')+'): '+e.message);
+  return false;
  }finally{state.loginAbort=null;busy(false);}
 }
 async function compare(){
