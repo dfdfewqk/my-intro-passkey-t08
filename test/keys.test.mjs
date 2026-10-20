@@ -63,5 +63,5 @@ test('deleted credential ID can only be removed under verified session',async()=
 test('no password input fields exist in the static HTML',async()=>{
  const fs=await import('node:fs');
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.ok(!/<input\\s[^>]*type=["']password/i.test(html));
+ assert.ok(!/<input\s[^>]*type=["']password/i.test(html));
 });
