@@ -96,6 +96,7 @@ test('Chrome profile B only gets registration from one-time fragment, no public 
  assert.ok(page.includes('id="profileIssue"'));
  assert.ok(page.includes('id="profileEnrollBtn"'));
  assert.ok(page.includes('href="#googleProfilePanel"'));
+ assert.ok(page.indexOf('id="googleProfilePanel"')>page.indexOf('id="additionalKeyProvider"'));
  assert.ok(client.includes("'#profileEnroll='+result.data.ticket"));
  assert.ok(client.includes("history.replaceState(null,'',location.pathname+location.search)"));
  assert.ok(client.includes("await profileAPI('status',{ticket})"));
