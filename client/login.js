@@ -77,6 +77,7 @@ async function updateStatus(){
  byId('loginState').textContent=ok?'로그인 중 · 서버 검증 세션':'로그아웃 상태 · 비공개 내용 잠김';
  button('logoutPasskey').dataset.logged=ok?'yes':'no';
  button('logoutPasskey').disabled=!ok||state.busy;
+ window.dispatchEvent(new CustomEvent('t08-auth-state',{detail:{authenticated:ok}}));
  if(ok){try{await loadPrivate();}catch(e){report('세션 확인은 됐지만 자료 조회 오류: '+e.message);}}
  return ok;
 }
@@ -158,6 +159,7 @@ function start(){
  button('loginCompare').addEventListener('click',compare);
  button('loginFake').addEventListener('click',failedAndReplay);
  button('logoutPasskey').addEventListener('click',logout);
+ window.addEventListener('t08-keys-session-revoked',()=>updateStatus().catch(()=>{}));
  byId('sessionProof').textContent='로그아웃 상태 / 세션 값: [가림]';
  updateStatus().catch(()=>report('인증 서버 상태를 확인하지 못했습니다.'));
 }
