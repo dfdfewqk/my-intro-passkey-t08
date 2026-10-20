@@ -102,12 +102,12 @@ async function refreshKeys(){
   const top=document.createElement('div');top.className='keyItemHeader';
   const name=document.createElement('strong');
   const duplicateName=(nameCounts.get(item.name)||0)>1;
-  const shortId=item.id.slice(0,12);
-  name.textContent=item.name+(duplicateName?' · ID '+shortId+'…':'');
+  const shortId=item.id.slice(0,6)+'…'+item.id.slice(-8);
+  name.textContent=item.name+(duplicateName?' · ID '+shortId:'');
   const remove=document.createElement('button');remove.type='button';
   remove.className='button secondary';
   remove.textContent=keys.length<=1?'마지막 패스키 (보호됨)':
-   '이 패스키 삭제'+(duplicateName?' · '+shortId+'…':'');
+   '이 패스키 삭제'+(duplicateName?' · '+shortId:'');
   remove.disabled=keys.length<=1;
   remove.addEventListener('click',()=>removePasskey(item,keys.length));
   top.append(name,remove);
@@ -265,7 +265,7 @@ async function addPasskey(){
 }
 async function removePasskey(item,count){
  if(count<=1){sayKeys('마지막 패스키는 삭제할 수 없습니다.');return;}
- const which='"'+item.name+'" (ID '+item.id.slice(0,12)+'…)';
+ const which='"'+item.name+'" (ID '+item.id.slice(0,6)+'…'+item.id.slice(-8)+')';
  const accepted=window.confirm(
   '정말 '+which+' 패스키를 삭제하시겠습니까?\n\n'+
   '같은 이름의 패스키가 있을 수 있으니 ID와 등록 날짜를 확인하세요.\n'+

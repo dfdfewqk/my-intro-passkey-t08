@@ -201,7 +201,7 @@ test('duplicate horse2 keys display distinct credential IDs and delete buttons',
  const deletes=list.slice(1).map(c=>c.children[0].children[1].textContent);
  assert.equal(new Set(names).size,3);
  assert.equal(new Set(deletes).size,3);
- assert.ok(names.every(x=>x.includes('ID credential-')));
+ assert.ok(names.every(x=>x.includes('ID creden…')));
 });
 test('stale login on deletion automatically reauthenticates and deletes only confirmed credential',async()=>{
  const env=simulatedClient({initialKeys:4,staleRemoval:true});
@@ -215,7 +215,7 @@ test('stale login on deletion automatically reauthenticates and deletes only con
  assert.equal(env.stats.removeCalls,2);
  assert.equal(env.stats.authPrompts,1);
  assert.equal(env.stats.confirmations.length,1);
- assert.ok(env.stats.confirmations[0].includes('credential-h'));
+ assert.ok(env.stats.confirmations[0].includes('creden…'));
  assert.equal(env.stats.remaining,3);
  assert.ok(env.el('keyManagementMessage').textContent.includes('삭제했습니다'));
 });
