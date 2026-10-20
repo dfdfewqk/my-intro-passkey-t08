@@ -140,7 +140,10 @@ html{scroll-behavior:smooth}
 <section class="keyGate" id="card5SplitPanel" aria-labelledby="card5SplitTitle">
 <h3 id="card5SplitTitle">카드 5 · 두 번째 사이트 계정 준비</h3>
 <p class="note">카드 4를 유지하려면 owner 계정의 horse와 horse2를 모두 보존해야 합니다. 카드 5의 다른 계정 owner2에는 별도의 세 번째 패스키가 필요합니다. 기존 키는 이동하거나 삭제하지 않습니다.</p>
-<p class="note" id="owner2Message">새 계정 등록 기능을 연결 중입니다. horse와 horse2는 현재 owner 계정에 그대로 있습니다.</p>
+<label for="owner2PasskeyName"><strong>owner2 전용 새 패스키 이름</strong></label>
+<input id="owner2PasskeyName" type="text" maxlength="48" value="owner2-key" style="display:block;padding:10px;margin:8px 0;max-width:300px;width:100%;border:1px solid #9caec2;border-radius:8px">
+<button class="button" type="button" id="owner2CreateButton">owner2 계정용 새 패스키 만들기</button>
+<p class="note" id="owner2Message" role="status" aria-live="polite">기존 두 패스키를 유지하며 새 패스키 하나를 추가합니다. 실제 성공 전에는 카드 5가 완료되지 않습니다.</p>
 </section>
 <p class="note"><strong>PIN 입력 필수 아님:</strong> 이 사이트는 등록과 로그인에서 PIN을 필수로 요구하지 않습니다. 다만 Google·Windows·Bitwarden 등 패스키 관리자가 자체 잠금 해제를 요구할 수 있습니다. 별도 PIN 없이 사용 가능할지는 인증기 정책에 달려 있으며 서버는 서명을 검증합니다. Google 계정 추가나 Chrome 프로필 변경 없이 <strong>아래 패스키 추가 등록</strong> 버튼에서 바로 시작할 수 있습니다.</p>
 <div class="keyGate" id="keyGate" role="region" aria-label="패스키 관리 로그인">
@@ -283,4 +286,5 @@ document.getElementById('check').addEventListener('click',async()=>{
 <script type="module" src="/client/keys.js"></script>
 <script type="module" src="/client/profile.js"></script>
 <script type="module" src="/client/card5.js"></script>
+<script type="module" src="/client/owner2.js"></script>
 </body></html>
