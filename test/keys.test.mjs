@@ -121,7 +121,7 @@ test('phone option requests hybrid smartphone credential and binds the requested
  assert.ok(client.includes("mode==='phone'"));
  assert.ok(client.includes('USB 보안 키 삽입 창'));
  assert.ok(client.includes('QR'));
- assert.ok(html.includes('USB 보안 키'));
+ assert.ok(html.includes('value="phone"'));
 });
 test('phone registration passes the selected mode using the existing authorized API',async()=>{
  const original=globalThis.fetch;let body;
