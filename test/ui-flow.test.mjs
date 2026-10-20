@@ -36,7 +36,7 @@ function simulatedClient({holdInitial=false}={}){
  const sessionStorage={getItem(){return null;},setItem(){}};
  const context={window,document,fetch:fakeFetch,Date,console,sessionStorage,AbortController,PublicKeyCredential:class{},navigator:{},location:{origin:'https://my-intro-t08.vercel.app'},CustomEvent:class{},setTimeout};
  vm.runInNewContext(keyCode,context);
- return {el,window,releaseInitial:()=>firstResolve?.({status:401,json:async()=>({error:'authentication_required'})})};
+ return {el,window,setBusy:context.setKeyBusy,releaseInitial:()=>firstResolve?.({status:401,json:async()=>({error:'authentication_required'})})};
 }
 const flush=async()=>{await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));};
 
@@ -80,4 +80,18 @@ test('Cross-session auth checks abort stale private data retrieval and hide prev
  assert.ok(loginCode.includes('privateRequest.abort()'));
  assert.ok(loginCode.includes('if(!ok)lockVault()'));
  assert.ok(loginCode.includes('window.t08StartLogin=login'));
+});
+
+test('Authenticated enrollment keeps Cancel available while a passkey dialog is active',async()=>{
+ const env=simulatedClient();
+ await flush();
+ await env.el('keyUnlock').handlers.click();
+ await flush();
+ env.setBusy(true);
+ assert.equal(env.el('keyAdd').disabled,true);
+ assert.equal(env.el('keyCancel').disabled,false);
+ assert.equal(env.el('keyEnrollmentFields').disabled,false);
+ env.setBusy(false);
+ assert.equal(env.el('keyAdd').disabled,false);
+ assert.equal(env.el('keyCancel').disabled,true);
 });
