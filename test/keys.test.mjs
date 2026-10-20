@@ -102,3 +102,36 @@ test('client reports browser-selected authenticator and explains Google duplicat
  assert.ok(source.includes("e.name==='InvalidStateError'"));
  assert.ok(source.includes('기존 자격증명 중복'));
 });
+
+
+test('phone option requests hybrid smartphone credential and binds the requested storage mode',async()=>{
+ const fs=await import('node:fs');
+ const edge=fs.readFileSync(new URL('../supabase/functions/t08-keys/index.ts',import.meta.url),'utf8');
+ const client=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/<option value="phone">/);
+ assert.ok(edge.includes("'phone'?'cross-platform'"));
+ assert.ok(edge.includes("mode==='phone'?['hybrid']"));
+ assert.ok(edge.includes('excludeCredentials:keys.map'));
+ assert.ok(edge.includes('requested_mode:mode'));
+ assert.ok(edge.includes("!==issued.requested_mode"));
+ assert.ok(edge.includes("'phone','unknown'"));
+ assert.ok(client.includes("provider==='phone'"));
+ assert.ok(client.includes("mode==='phone'"));
+ assert.ok(client.includes('QR코드'));
+});
+test('phone registration passes the selected mode using the existing authorized API',async()=>{
+ const original=globalThis.fetch;let body;
+ globalThis.fetch=async(_url,request)=>{
+  body=JSON.parse(request.body);
+  return {status:200,json:async()=>({options:{hints:['hybrid']}})};
+ };
+ try{
+  const {data,r}=capture();
+  await handler(req('options',{payload:{storageProvider:'phone'}}),r);
+  assert.equal(data.status,200);
+  assert.equal(body.storageProvider,'phone');
+  assert.equal(body.session,'b'.repeat(64));
+  assert.deepEqual(data.json.options.hints,['hybrid']);
+ }finally{globalThis.fetch=original;}
+});
