@@ -177,7 +177,7 @@ async function addPasskey(){
   const ready=await ensureEnrollmentSession();
   if(!ready)return;
   sayKeys('로그인 확인 완료. 새로운 패스키 발급 질문을 서버에서 요청 중입니다…');
-  let issued=await keysApi('options');
+  let issued=await keysApi('options',{storageProvider:provider});
   if(issued.status===401){
    keyAuthorized=false;
    lockManagement();
@@ -186,15 +186,27 @@ async function addPasskey(){
   if(issued.status!==200)throw Error('등록 질문 발급 HTTP '+issued.status+' ('+(issued.data.error||'unknown')+')');
   pendingId=issued.data.challengeId;
   keyEl('keyCancel').disabled=false;
-  addEvidence('추가 등록 질문 발급 HTTP 200 · 지문 '+issued.data.challengeFingerprint+
-   ' · 기존 패스키 제외 '+(issued.data.options.excludeCredentials?.length||0)+'개');
-  sayKeys('새 패스키 저장 창이 열립니다. 기존 horse와 다른 자격증명을 생성하세요. 취소하면 서버에 공개키가 저장되지 않습니다.');
+  const requested=issued.data.requestedMode||provider;
+  const attachment=issued.data.options.authenticatorSelection?.authenticatorAttachment||'브라우저 자동 선택';
+  const hints=issued.data.options.hints||[];
+  addEvidence('추가 등록 질문 HTTP 200 · 지문 '+issued.data.challengeFingerprint+
+   ' · 기존 패스키 제외 '+(issued.data.options.excludeCredentials?.length||0)+'개'+
+   ' · 요청 저장 방식 '+requested+' · authenticatorAttachment '+attachment+
+   ' · hints '+(hints.join(',')||'없음'));
+  const guidance=provider==='security_key'
+   ?'외장 USB/NFC 보안 키 모드를 요청했습니다. 실제 보안 키를 연결하고 Chrome 창에서 보안 키를 선택하세요. 다른 Google 계정은 USB 보안 키가 아닙니다.'
+   :provider==='device'
+   ?'기기 내장 인증 방식(Windows Hello 등)을 요청했습니다. 구글 관리자가 나타난다면 Windows Hello/다른 인증 방법을 직접 선택해야 할 수 있습니다.'
+   :'브라우저의 Google 비밀번호 관리자 선택 화면입니다. 사이트에서는 어떤 Google 계정에 저장할지 직접 지정할 수 없습니다.';
+  sayKeys(guidance+' 새 패스키 생성이 완료될 때만 서버에 공개키가 추가됩니다.');
   waiter=new AbortController();
   const credential=await navigator.credentials.create({
    publicKey:optionsForCreate(issued.data.options),signal:waiter.signal
   });
   if(!credential)throw new DOMException('기기 등록 취소','NotAllowedError');
   if(!pendingId)throw new DOMException('사용자 취소','AbortError');
+  addEvidence('브라우저가 보고한 인증 장치 유형: '+(credential.authenticatorAttachment||'미확인')+
+    ' · 사용자가 선택한 저장 방식: '+provider+' (실제 구글 계정 식별 불가)');
   const result=await keysApi('verify',{
    challengeId:pendingId,response:serializeCreated(credential),name,storageProvider:provider
   });
@@ -203,7 +215,9 @@ async function addPasskey(){
   if(result.status!==200||!result.data.passkeyStored){
    throw Error('공개키 저장 실패 HTTP '+result.status+' ('+(result.data.error||'unknown')+')');
   }
-  sayKeys('추가 패스키 등록 성공: '+name+' · 현재 '+result.data.totalPasskeys+'개. 기존 패스키는 유지됩니다.');
+  sayKeys('추가 패스키 등록 성공: '+name+' · 현재 '+result.data.totalPasskeys+
+   '개. 브라우저 보고 방식: '+(result.data.reportedAttachment||'미확인')+
+   '. 기존 horse는 유지됩니다.');
   await refreshKeys();
  }catch(e){
   if(pendingId){
@@ -212,8 +226,13 @@ async function addPasskey(){
    try{await keysApi('cancel',{challengeId:id});}catch{}
   }
   const cancelled=['NotAllowedError','AbortError'].includes(e.name);
-  if(cancelled){
-   sayKeys('새 패스키 만들기가 취소되거나 기기에서 거절됐습니다. 같은 관리자에 이미 등록된 패스키가 있으면 다른 저장 위치를 선택해 다시 시도하세요. 입력 내용은 유지됩니다.');
+  if(e.name==='InvalidStateError'){
+   addEvidence('기존 패스키 중복 발견 · 브라우저 InvalidStateError · 서버 신규 공개키 저장 없음');
+   sayKeys('새 패스키 등록 불가 (기존 자격증명 중복): Chrome이 이미 등록된 horse 패스키를 가진 저장소를 다시 선택했습니다. 단순히 두 번째 Google 계정이나 외장 보안 키 항목을 고르는 것만으로 저장소가 바뀌지는 않습니다. 실제 다른 보안 키 또는 다른 장치를 선택하세요. 현재 입력값은 유지됩니다.');
+  }else if(e.name==='NotSupportedError'){
+   sayKeys('선택한 인증 장치 방식을 브라우저 또는 기기가 지원하지 않습니다. 실제 사용 가능한 기기 인증 방식으로 바꿔 다시 시도하세요.');
+  }else if(cancelled){
+   sayKeys('새 패스키 생성이 취소됐습니다. 저장 위치를 다시 확인한 뒤 바로 재시도할 수 있습니다. 입력 내용은 유지됩니다.');
   }else{
    sayKeys('추가 등록 실패 ('+(e.name||'Error')+'): '+e.message+' · 입력 내용은 유지됩니다.');
   }
