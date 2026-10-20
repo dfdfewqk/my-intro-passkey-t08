@@ -76,7 +76,8 @@ html{scroll-behavior:smooth}
 <a class="button secondary" href="#manageKeysPanel">패스키 추가·관리 ↓</a>
 <button class="button secondary" id="logoutPasskey" type="button" disabled data-logged="no">로그아웃 · 재사용 검사</button>
 </div>
-<p id="loginState" class="note">로그인 상태 확인 중…</p>
+<p id="loginState" class="note" role="status" aria-live="polite">로그인 상태 확인 중…</p>
+<p class="note">로그인 성공 시 실제 사용한 패스키 이름(horse 또는 horse2), 세션 확인, 비공개 자료 결과를 각각 표시합니다.</p>
 <div id="loginMessage" class="status" role="status" aria-live="polite">로그인 준비 중…</div>
 <p class="note" id="sessionProof">세션 값: [가림]</p>
 <hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">

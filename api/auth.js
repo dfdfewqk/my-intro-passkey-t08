@@ -40,7 +40,10 @@ export default async function handler(req,res){
   const session=getSession(req);
   if(!session)return res.status(200).json({authenticated:false,sessionType:'server_session'});
   const result=await edge('validate',{session});
-  return res.status(200).json({authenticated:result.status===200&&result.data.authenticated===true,sessionType:'server_session'});
+  if(result.status>=500)return res.status(503).json({error:'authentication_server_unavailable',authenticated:false});
+  const authenticated=result.status===200&&result.data.authenticated===true;
+  return res.status(200).json({authenticated,sessionType:'server_session',
+   ...(authenticated?{passkeyName:result.data.passkeyName||'등록된 패스키'}:{})});
  }
  if(action==='logout'){
   const session=getSession(req);
@@ -67,7 +70,8 @@ export default async function handler(req,res){
   }
   res.setHeader('Set-Cookie',COOKIE+'='+result.data.session+'; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Strict');
   return res.status(200).json({authenticated:true,sessionType:'server_session',
-   expiresAt:result.data.expiresAt,signatureVerified:true});
+   expiresAt:result.data.expiresAt,signatureVerified:true,
+   passkeyName:result.data.passkeyName||'등록된 패스키'});
  }
  return res.status(400).json({error:'unknown_action'});
 }

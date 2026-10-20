@@ -83,21 +83,45 @@ async function loadPrivate(revision){
   block.append(h,p);block.style.margin='12px 0';container.append(block);
  }
  log('서버 검증 세션으로 비공개 조회',r.status, '연습 기록 '+payload.items.length+'건');
+ return payload.items.length;
 }
 async function updateStatus(){
  const revision=++authRevision;
  if(privateRequest){privateRequest.abort();privateRequest=null;}
- const status=await call('status');
+ let status;
+ try{status=await call('status');}
+ catch(e){
+  if(revision===authRevision){
+   byId('loginState').textContent='로그인 상태 확인 오류';
+   report('로그인 상태 확인 요청이 실패했습니다: '+e.message);
+   lockVault();
+  }
+  return false;
+ }
  if(revision!==authRevision)return false;
+ if(status.code>=500){
+  byId('loginState').textContent='로그인 상태 확인 일시 오류 · 로그아웃으로 판정하지 않음';
+  report('인증 서버 확인 오류 HTTP '+status.code+' · 잠시 후 다시 확인하세요.');
+  lockVault();
+  return false;
+ }
  const ok=status.code===200&&status.data.authenticated===true;
- byId('loginState').textContent=ok?'로그인 중 · 서버 검증 세션':'로그아웃 상태 · 비공개 내용 잠김';
+ const loginName=ok?String(status.data.passkeyName||'등록된 패스키'):'';
+ byId('loginState').textContent=ok?'로그인 중 · '+loginName+' · 서버 검증 완료':'로그아웃 상태 · 비공개 내용 잠김';
  button('logoutPasskey').dataset.logged=ok?'yes':'no';
  button('logoutPasskey').disabled=!ok||state.busy;
  if(!ok)lockVault();
  window.dispatchEvent(new CustomEvent('t08-auth-state',{detail:{authenticated:ok}}));
- if(ok){try{await loadPrivate(revision);}
- catch(e){if(revision===authRevision&&e.name!=='AbortError')
-    report('세션 확인은 됐지만 자료 조회 오류: '+e.message);}}
+ if(ok){
+  try{
+   const count=await loadPrivate(revision);
+   if(revision===authRevision&&typeof count==='number')
+    report('로그인 성공: '+loginName+' · 서명/세션 확인 · 비공개 자료 '+count+'건 표시');
+  }catch(e){
+   if(revision===authRevision&&e.name!=='AbortError')
+    report('로그인 성공: '+loginName+' · 다만 비공개 자료 조회 실패: '+e.message);
+  }
+ }
  return ok;
 }
 async function login(){
@@ -121,11 +145,12 @@ async function login(){
   state.active=null;
   log('실제 WebAuthn 서명 검증',result.code,result.code===200?'성공 · 세션 값 [가림]':result.data.error||'거절');
   if(result.code!==200||!result.data.signatureVerified)throw Error(result.data.error||'signature_invalid');
-  byId('sessionProof').textContent='인증: 서명 검증 성공 / 방식: 서버 세션 / 보관: HttpOnly·Secure·SameSite=Strict 쿠키 / 세션 값: [가림]';
+  byId('sessionProof').textContent='인증: '+String(result.data.passkeyName||'등록된 패스키')+
+  ' · 서명 검증 성공 / 방식: 서버 세션 / 보관: HttpOnly·Secure·SameSite=Strict 쿠키 / 세션 값: [가림]';
   report('패스키 로그인 성공! 인증 세션을 확인합니다.');
   const authenticated=await updateStatus();
   if(!authenticated){
-    report('서명은 확인됐지만 서버 세션이 연결되지 않았습니다. 쿠키 차단 여부와 주소를 확인하세요.');
+    report('서명 확인은 됐지만 서버 세션 또는 쿠키를 확인하지 못했습니다. 로그인 상태 오류를 확인하세요.');
     return false;
   }
   return true;
@@ -133,7 +158,7 @@ async function login(){
   if(state.active)await cancelCurrent().catch(()=>{});
   const wasCanceled=['NotAllowedError','AbortError'].includes(e.name)||e.message==='user_canceled';
   report(wasCanceled
-   ?'패스키 로그인 창이 취소되었거나 사용할 패스키를 선택하지 못했습니다. 기존 horse 패스키가 저장된 관리자를 선택해 다시 시도하세요.'
+   ?'패스키 선택이 취소되었거나 기기에 사용할 패스키가 없습니다. Google 저장소에 남은 삭제된 패스키 대신 사이트에 등록된 horse 또는 horse2를 선택하세요.'
    :'패스키 로그인 실패 ('+(e.name||'Error')+'): '+e.message);
   return false;
  }finally{state.loginAbort=null;busy(false);}
