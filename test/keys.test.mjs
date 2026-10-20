@@ -100,7 +100,7 @@ test('client reports browser-selected authenticator and explains Google duplicat
  assert.ok(source.includes("keysApi('options',{storageProvider:provider})"));
  assert.ok(source.includes("credential.authenticatorAttachment"));
  assert.ok(source.includes("e.name==='InvalidStateError'"));
- assert.ok(source.includes('기존 자격증명 중복'));
+ assert.ok(source.includes('기존 패스키 중복'));
 });
 
 
