@@ -3,6 +3,15 @@ const byId=id=>document.getElementById(id);
 const button=id=>byId(id);
 const state={busy:false,active:null,lastChallenge:null,loginAbort:null};
 const events=[];
+let authRevision=0;
+let privateRequest=null;
+function lockVault(){
+ if(privateRequest){privateRequest.abort();privateRequest=null;}
+ const vault=byId('vault');vault.replaceChildren();
+ const message=document.createElement('p');
+ message.className='note';message.textContent='🔒 로그인 후에만 비공개 자료가 표시됩니다.';
+ vault.append(message);
+}
 function report(text){byId('loginMessage').textContent=text;}
 function log(label,code,extra=''){
  events.push({time:new Date().toLocaleTimeString('ko-KR'),label,code,extra});
@@ -56,10 +65,14 @@ async function cancelCurrent(){
  const id=state.active;state.active=null;
  if(id)await call('cancel',{challengeId:id});
 }
-async function loadPrivate(){
- const r=await fetch('/api/private',{cache:'no-store',credentials:'same-origin'});
+async function loadPrivate(revision){
+ const controller=new AbortController();
+ privateRequest=controller;
+ const r=await fetch('/api/private',{cache:'no-store',credentials:'same-origin',signal:controller.signal});
+ if(revision!==authRevision||controller.signal.aborted)return;
  if(!r.ok)throw Error('비공개 자료 요청 HTTP '+r.status);
  const payload=await r.json();
+ if(revision!==authRevision||controller.signal.aborted)return;
  if(!payload.private||!Array.isArray(payload.items))throw Error('서버 응답 형식이 올바르지 않습니다');
  const container=byId('vault');
  container.replaceChildren();
@@ -72,13 +85,19 @@ async function loadPrivate(){
  log('서버 검증 세션으로 비공개 조회',r.status, '연습 기록 '+payload.items.length+'건');
 }
 async function updateStatus(){
+ const revision=++authRevision;
+ if(privateRequest){privateRequest.abort();privateRequest=null;}
  const status=await call('status');
+ if(revision!==authRevision)return false;
  const ok=status.code===200&&status.data.authenticated===true;
  byId('loginState').textContent=ok?'로그인 중 · 서버 검증 세션':'로그아웃 상태 · 비공개 내용 잠김';
  button('logoutPasskey').dataset.logged=ok?'yes':'no';
  button('logoutPasskey').disabled=!ok||state.busy;
+ if(!ok)lockVault();
  window.dispatchEvent(new CustomEvent('t08-auth-state',{detail:{authenticated:ok}}));
- if(ok){try{await loadPrivate();}catch(e){report('세션 확인은 됐지만 자료 조회 오류: '+e.message);}}
+ if(ok){try{await loadPrivate(revision);}
+ catch(e){if(revision===authRevision&&e.name!=='AbortError')
+    report('세션 확인은 됐지만 자료 조회 오류: '+e.message);}}
  return ok;
 }
 async function login(){
@@ -137,6 +156,8 @@ async function failedAndReplay(){
 }
 async function logout(){
  busy(true);
+ ++authRevision;
+ lockVault();
  try{
   const result=await call('logout');
   const reused=result.data.reuseStatus;
@@ -155,6 +176,7 @@ async function logout(){
  finally{busy(false);}
 }
 function start(){
+ window.t08StartLogin=login;
  button('loginPasskey').addEventListener('click',login);
  button('loginCompare').addEventListener('click',compare);
  button('loginFake').addEventListener('click',failedAndReplay);
