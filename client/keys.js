@@ -87,7 +87,7 @@ async function refreshKeys(){
  keyEl('keyUnlock').disabled=false;
  const list=keyEl('keyListDetailed');
  list.replaceChildren();
- keyEl('keyAdd').disabled=false;
+ keyEl('keyAdd').disabled=keyOperationBusy;
  keyEl('keyCountDetailed').textContent='등록된 패스키: '+keys.length+'개';
  if(!keys.length){
   const text=document.createElement('p');
