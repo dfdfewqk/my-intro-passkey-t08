@@ -89,7 +89,7 @@ async function refreshKeys(){
  const list=keyEl('keyListDetailed');
  list.replaceChildren();
  keyEl('keyAdd').disabled=keyOperationBusy;
- keyEl('keyCountDetailed').textContent='등록된 패스키: '+keys.length+'개';
+ keyEl('keyCountDetailed').textContent='현재 '+(r.data.accountName||'owner')+' 계정의 패스키: '+keys.length+'개';
  const nameCounts=new Map();
  for(const k of keys)nameCounts.set(k.name,(nameCounts.get(k.name)||0)+1);
  if(!keys.length){
@@ -367,6 +367,39 @@ function updateProviderHelp(){
   :'저장 위치를 선택하세요. 선택 항목은 등록 요청에 반영되지만, 최종 기기·계정 선택은 브라우저가 결정할 수 있습니다.';
  keyEl('keyProviderHelp').textContent=message;
 }
+async function splitIntoSecondAccount(){
+ const message=keyEl('accountSplitMessage');
+ message.textContent='전환 조건 확인 중…';
+ const current=await keysApi('list').catch(()=>({status:503,data:{}}));
+ if(current.status!==200){message.textContent='로그인 후 다시 시도하세요.';return;}
+ if(current.data.accountId!==1){message.textContent='owner 계정에서만 두 번째 계정으로 분리할 수 있습니다.';return;}
+ if(!current.data.passkeys.some(k=>k.name==='horse')||
+    !current.data.passkeys.some(k=>k.name==='horse2')){
+  message.textContent='원래 계정에 horse와 horse2 패스키가 모두 있어야 합니다.';return;
+ }
+ if(!window.confirm('카드 5 계정 분리: 현재 horse2 패스키를 owner2로 이동합니다.\n\n' +
+  '분리 후 horse는 owner, horse2는 owner2의 서로 다른 자료실을 엽니다. '+
+  '기존 owner 자료는 삭제되지 않습니다. 분리 후 두 계정은 서로의 비공개 기록에 접근할 수 없습니다.\n\n'+
+  '확인하면 horse2로 다시 로그인한 상태에서만 전환을 승인합니다. 계속하시겠습니까?'))return;
+ message.textContent='horse2로 최근 15분 이내 로그인해야 계정 분리가 가능합니다. 패스키 선택창에서 horse2를 선택하세요.';
+ const login=window.t08StartLogin;
+ if(typeof login!=='function'||!await login()){
+  message.textContent='로그인이 취소되어 변경된 계정이나 패스키는 없습니다.';return;
+ }
+ const status=await fetch('/api/auth',{method:'POST',credentials:'same-origin',
+  headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status'})});
+ const info=await status.json().catch(()=>({}));
+ if(status.status!==200||!info.authenticated||info.passkeyName!=='horse2'||info.ownerId!==1){
+  message.textContent='horse2가 아닌 다른 패스키로 로그인됐습니다. 분리하지 않았습니다.';return;
+ }
+ const result=await keysApi('split');
+ if(result.status!==200||!result.data.split){
+  message.textContent='분리하지 않았습니다: '+(result.data.error||'HTTP '+result.status);return;
+ }
+ message.textContent='완료: horse → owner, horse2 → owner2. 기존 owner 자료는 보존됐습니다. 로그인 세션이 종료됐으니 두 패스키로 각각 로그인해 자료실을 확인하세요.';
+ lockManagement();
+ window.dispatchEvent(new CustomEvent('t08-keys-session-revoked'));
+}
 function initKeys(){
  keyEl('additionalKeyProvider').addEventListener('change',updateProviderHelp);
  updateProviderHelp();
@@ -397,6 +430,7 @@ function initKeys(){
  keyEl('keyAdd').addEventListener('click',addPasskey);
  keyEl('keyCancel').addEventListener('click',cancelAdd);
  keyEl('keyProbeDeleted').addEventListener('click',probeDeleted);
+ keyEl('accountSplitButton').addEventListener('click',splitIntoSecondAccount);
  window.addEventListener('t08-auth-state',e=>{
   if(e.detail?.authenticated)refreshKeys();
   else lockManagement();

@@ -16,6 +16,8 @@ function toB64(bytes:Uint8Array){return btoa(String.fromCharCode(...bytes))
  .replaceAll('+','-').replaceAll('/','_').replaceAll('=','');}
 function classifyError(message:string){
  if(message.includes('last_passkey_protected'))return [409,'last_passkey_protected'];
+ if(message.includes('horse2_login_required'))return [403,'horse2_login_required'];
+ if(message.includes('second_account_already_has_passkey'))return [409,'second_account_already_has_passkey'];
  if(message.includes('recent_login_required'))return [403,'recent_login_required'];
  if(message.includes('duplicate_credential')||message.includes('23505'))return [409,'duplicate_credential'];
  if(message.includes('session_expired_or_revoked'))return [401,'session_expired_or_revoked'];
@@ -34,24 +36,35 @@ Deno.serve(async(req)=>{
  if(typeof session!=='string'||!/^[0-9a-f]{64}$/.test(session))return json({error:'authentication_required'},401);
  const sessionHash=await sha256(session);
  const {data:active,error:sessionError}=await db.from('t08_login_sessions')
-  .select('owner_id,created_at').eq('session_hash',sessionHash)
+  .select('owner_id,created_at,credential_id').eq('session_hash',sessionHash)
   .is('revoked_at',null).gt('expires_at',new Date().toISOString()).maybeSingle();
  if(sessionError)return json({error:'storage_unavailable'},503);
- if(!active||active.owner_id!==1)return json({error:'session_expired_or_revoked'},401);
+ if(!active||![1,2].includes(active.owner_id))return json({error:'session_expired_or_revoked'},401);
+ // Enforce tenant membership with the credential used for this signed session.
+ const {data:key,error:activeKeyErr}=await db.from('t08_passkeys')
+ .select('credential_id').eq('credential_id',active.credential_id).eq('owner_id',active.owner_id).maybeSingle();
+ if(activeKeyErr)return json({error:'storage_unavailable'},503);
+ if(!key)return json({error:'session_expired_or_revoked'},401);
+ if(input.action==='split'){
+  if(active.owner_id!==1)return json({error:'wrong_account_for_split'},403);
+  const {data,error}=await db.rpc('t08_split_horse2_to_owner2',{p_session_hash:sessionHash});
+  if(error){const [status,code]=classifyError(error.message);return json({error:code},Number(status));}
+  return json({...data,oldSessionInvalidated:true});
+ }
  const action=input.action;
  if(action==='list'){
   const {data,error}=await db.from('t08_passkeys')
    .select('credential_id,display_name,created_at,storage_provider,device_type,backed_up')
-   .eq('owner_id',1).order('created_at',{ascending:true});
+   .eq('owner_id',active.owner_id).order('created_at',{ascending:true});
   if(error)return json({error:'storage_unavailable'},503);
   return json({passkeys:(data||[]).map(k=>({
     id:k.credential_id,name:k.display_name,createdAt:k.created_at,
     storageProvider:k.storage_provider,deviceType:k.device_type,backedUp:k.backed_up
-   })),lastKeyDeletionBlocked:true});
+   })),lastKeyDeletionBlocked:true,accountId:active.owner_id,accountName:active.owner_id===1?'owner':'owner2'});
  }
  if(action==='options'){
   const {data:keys,error}=await db.from('t08_passkeys')
-   .select('credential_id,transports').eq('owner_id',1);
+   .select('credential_id,transports').eq('owner_id',active.owner_id);
   if(error)return json({error:'storage_unavailable'},503);
   if(!keys?.length)return json({error:'account_has_no_passkeys'},409);
   if(keys.length>=10)return json({error:'too_many_passkeys'},409);
@@ -76,7 +89,7 @@ Deno.serve(async(req)=>{
     mode==='device'?['client-device']:[];
   const optionsBase=await generateRegistrationOptions({
    rpName:'내 소개 · 개인 자료실',rpID:RP,
-   userName:'owner-'+registrationHandle64.slice(0,12),userDisplayName:newName,
+   userName:(active.owner_id===1?'owner':'owner2')+'-'+registrationHandle64.slice(0,12),userDisplayName:newName,
    userID:registrationHandle,
    attestationType:'none',supportedAlgorithmIDs:[-7,-257],
    authenticatorSelection:{residentKey:'preferred',userVerification:'discouraged',

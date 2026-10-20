@@ -70,17 +70,17 @@ Deno.serve(async req=>{
    .select('owner_id,credential_id').eq('session_hash',sessionHash)
    .is('revoked_at',null).gt('expires_at',new Date().toISOString()).maybeSingle();
   if(error)return send({error:'storage_unavailable'},503);
-  if(!data||data.owner_id!==1)return send({error:'session_expired_or_revoked'},401);
+  if(!data||![1,2].includes(data.owner_id))return send({error:'session_expired_or_revoked'},401);
   const {data:original,error:keyError}=await db.from('t08_passkeys')
-    .select('display_name').eq('credential_id',data.credential_id).eq('owner_id',1).maybeSingle();
+    .select('display_name').eq('credential_id',data.credential_id).eq('owner_id',data.owner_id).maybeSingle();
   if(keyError)return send({error:'storage_unavailable'},503);
   if(!original)return send({error:'session_credential_removed'},401);
-  return send({authenticated:true,ownerId:1,passkeyName:original.display_name});
+  return send({authenticated:true,ownerId:data.owner_id,accountName:data.owner_id===1?'owner':'owner2',passkeyName:original.display_name});
  }
 
  if(action==='options'){
   const {data:keys,error}=await db.from('t08_passkeys')
-    .select('credential_id,transports').eq('owner_id',1);
+    .select('credential_id,transports').in('owner_id',[1,2]);
   if(error)return send({error:'storage_unavailable'},503);
   if(!keys?.length)return send({error:'no_registered_passkey'},409);
   const options=await generateAuthenticationOptions({
@@ -123,8 +123,8 @@ Deno.serve(async req=>{
   const id=response&&typeof response.id==='string'?response.id:'';
   if(!id){await audit('rejected',issued.challenge);return send({error:'invalid_signature'},401);}
   const {data:keyRow,error:keyErr}=await db.from('t08_passkeys')
-   .select('credential_id,public_key_base64url,counter,transports,display_name')
-   .eq('credential_id',id).eq('owner_id',1).maybeSingle();
+   .select('credential_id,public_key_base64url,counter,transports,display_name,owner_id')
+   .eq('credential_id',id).in('owner_id',[1,2]).maybeSingle();
   if(keyErr)return send({error:'storage_unavailable'},503);
   if(!keyRow){await audit('rejected',issued.challenge);return send({error:'unknown_credential'},401);}
   let updatedCounter:number;
@@ -156,7 +156,7 @@ Deno.serve(async req=>{
   }
   await audit('verified',issued.challenge);
   return send({authenticated:true,session,expiresAt,sessionType:'server_session',
-  passkeyName:keyRow.display_name});
+  passkeyName:keyRow.display_name,ownerId:keyRow.owner_id,accountName:keyRow.owner_id===1?'owner':'owner2'});
  }
  return send({error:'unknown_action'},400);
 });

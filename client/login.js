@@ -2,7 +2,7 @@
 const byId=id=>document.getElementById(id);
 const button=id=>byId(id);
 const state={busy:false,active:null,lastChallenge:null,loginAbort:null,
- sessionMode:'checking',sessionName:''};
+ sessionMode:'checking',sessionName:'',accountName:'owner'};
 const events=[];
 let authRevision=0;
 let privateRequest=null;
@@ -57,8 +57,8 @@ function renderSessionRibbon(mode=state.sessionMode,name=state.sessionName){
  const title=byId('sessionRibbonTitle');
  const details=byId('sessionRibbonDetail');
  if(mode==='authenticated'){
-  title.textContent='● 로그인됨 · owner · '+name;
-  details.textContent='인증한 패스키: '+name+' · 동일한 개인 자료실 접근 권한';
+  title.textContent='● 로그인됨 · '+(state.accountName||'owner')+' · '+name;
+  details.textContent='인증한 패스키: '+name+' · 현재 '+(state.accountName||'owner')+' 자료만 열람 가능';
  }else if(mode==='error'){
   title.textContent='! 로그인 상태 확인 실패';
   details.textContent='서버 연결을 확인하지 못했습니다. 로그인 여부를 확정하지 않습니다.';
@@ -140,7 +140,8 @@ async function updateStatus(){
  }
  const ok=status.code===200&&status.data.authenticated===true;
  const loginName=ok?String(status.data.passkeyName||'등록된 패스키'):'';
- byId('loginState').textContent=ok?'로그인 중 · '+loginName+' · 서버 검증 완료':'로그아웃 상태 · 비공개 내용 잠김';
+ state.accountName=ok?String(status.data.accountName||'owner'):'owner';
+ byId('loginState').textContent=ok?'로그인 중 · '+state.accountName+' · '+loginName+' · 서버 검증 완료':'로그아웃 상태 · 비공개 내용 잠김';
  button('loginPasskey').textContent=ok?'다른 패스키로 다시 로그인':'패스키로 로그인';
  renderSessionRibbon(ok?'authenticated':'loggedOut',loginName);
  button('logoutPasskey').dataset.logged=ok?'yes':'no';
@@ -151,10 +152,10 @@ async function updateStatus(){
   try{
    const count=await loadPrivate(revision);
    if(revision===authRevision&&typeof count==='number')
-    report('로그인 성공: '+loginName+' · 서명/세션 확인 · 비공개 자료 '+count+'건 표시');
+    report('로그인 성공: '+state.accountName+' · '+loginName+' · 서명/세션 확인 · 비공개 자료 '+count+'건 표시');
   }catch(e){
    if(revision===authRevision&&e.name!=='AbortError')
-    report('로그인 성공: '+loginName+' · 다만 비공개 자료 조회 실패: '+e.message);
+    report('로그인 성공: '+state.accountName+' · '+loginName+' · 다만 비공개 자료 조회 실패: '+e.message);
   }
  }
  return ok;

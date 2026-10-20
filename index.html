@@ -81,7 +81,7 @@ html{scroll-behavior:smooth}
   </div>
 </div>
 <h1>공개 소개는 그대로, 내 기록은 따로</h1>
-<p class="lead">왼쪽 소개 페이지는 누구나 볼 수 있습니다. 오른쪽 개인 자료실은 서버에서 접근을 차단하며, 비공개 문서 본문은 인증하기 전에는 내려오지 않습니다.</p>
+<p class="lead">왼쪽 소개 페이지는 로그인 없이 열리는 공개 화면입니다. 오른쪽 자료실은 서명으로 확인된 사이트 계정(owner 또는 owner2)의 자료만 보여 줍니다. 카드 5 계정 분리 전에는 두 패스키 모두 owner 계정에 연결되어 있습니다.</p>
 <main class="grid">
 <section class="panel" aria-labelledby="public-title">
 <span class="tag">공개 영역 · 누구나 열람</span>
@@ -105,7 +105,7 @@ html{scroll-behavior:smooth}
 <button class="button secondary" id="logoutPasskey" type="button" disabled data-logged="no">로그아웃 · 재사용 검사</button>
 </div>
 <p id="loginState" class="note" role="status" aria-live="polite">로그인 상태 확인 중…</p>
-<p class="note">로그인 성공 시 실제 사용한 패스키 이름(horse 또는 horse2), 세션 확인, 비공개 자료 결과를 각각 표시합니다.</p>
+<p class="note">로그인 성공 시 확인된 사이트 계정(owner/owner2), 사용한 패스키, 비공개 자료 결과를 각각 표시합니다.</p>
 <div id="loginMessage" class="status" role="status" aria-live="polite">로그인 준비 중…</div>
 <p class="note" id="sessionProof">세션 값: [가림]</p>
 <hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
@@ -125,7 +125,13 @@ html{scroll-behavior:smooth}
 </main>
 <section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
 <span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
-<h2 id="manageKeysTitle">두 번째 패스키 추가 및 관리</h2>
+<h2 id="manageKeysTitle">패스키 추가 및 계정별 관리</h2>
+<section class="keyGate" id="card5SplitPanel" aria-labelledby="card5SplitTitle">
+ <h3 id="card5SplitTitle">카드 5 · 두 개 사이트 계정으로 분리하기</h3>
+ <p class="note">카드 4의 horse/horse2는 현재 같은 owner에 소속되어 있습니다. 카드 5에서는 각각 다른 사이트 계정과 비공개 자료가 필요합니다. <strong>기존 자료를 삭제하지 않고</strong> horse2를 새 사이트 계정 owner2로 옮기려면 직접 확인 후 아래 버튼을 누르세요. Google 계정을 새로 만드는 과정이 아닙니다.</p>
+ <button class="button secondary" id="accountSplitButton" type="button">horse2를 별도 사이트 계정 owner2로 분리</button>
+ <p class="note" id="accountSplitMessage" role="status" aria-live="polite">분리 전에는 두 패스키 모두 owner 자료실을 사용합니다. 분리 후에는 각자 자신의 자료실만 표시됩니다.</p>
+</section>
 <p class="note"><strong>PIN 입력 필수 아님:</strong> 이 사이트는 등록과 로그인에서 PIN을 필수로 요구하지 않습니다. 다만 Google·Windows·Bitwarden 등 패스키 관리자가 자체 잠금 해제를 요구할 수 있습니다. 별도 PIN 없이 사용 가능할지는 인증기 정책에 달려 있으며 서버는 서명을 검증합니다. Google 계정 추가나 Chrome 프로필 변경 없이 <strong>아래 패스키 추가 등록</strong> 버튼에서 바로 시작할 수 있습니다.</p>
 <div class="keyGate" id="keyGate" role="region" aria-label="패스키 관리 로그인">
 <strong>선택 사항 · 기존 패스키 로그인</strong>
@@ -145,7 +151,7 @@ html{scroll-behavior:smooth}
 <h2 id="addSecondKeyTitle">새 패스키 등록 · 언제든 시작 가능</h2>
 <p class="note"><strong>이미 Google 계정이 2개 있다면:</strong> 아래 저장 위치에서 <strong>「다른 Google 계정(B)에 패스키 저장」</strong>을 선택한 뒤 기존 등록 버튼 하나만 누르세요. 별도 USB나 새 Google 계정은 필요 없습니다.</p>
 <p class="note">이름과 저장 위치는 로그인하지 않았어도 입력할 수 있습니다. 등록 버튼을 누르면 필요할 때 기존 horse로 인증하고 새 패스키를 생성합니다. 기존 패스키는 삭제되지 않습니다.</p>
-<p class="note">사이트 계정 owner는 하나이며 <strong>horse와 horse2를 서로 다른 패스키</strong>로 관리합니다. Google 계정 B에 저장하려면 Chrome에서도 B 프로필을 사용해야 합니다. 현재 Google 관리자가 자체 PIN을 요구하는 것은 사이트에서 강제로 제거할 수 없습니다.</p>
+<p class="note">기본 owner 계정은 유지되고, 카드 5에서 사용자 동의로 분리하면 owner2가 독립적인 자료실을 갖습니다. Google 계정 B에 저장하려면 Chrome에서도 B 프로필을 사용해야 합니다. 현재 Google 관리자가 자체 PIN을 요구하는 것은 사이트에서 강제로 제거할 수 없습니다.</p>
 <fieldset class="gatedFields" id="keyEnrollmentFields">
 <div class="registerGrid">
 <label for="additionalKeyName"><strong>새 패스키 이름</strong>
@@ -172,7 +178,7 @@ html{scroll-behavior:smooth}
 <section class="panel" id="googleProfilePanel" style="margin-top:22px;border-top:2px solid #cad7e5;padding-top:16px" aria-labelledby="googleProfileTitle">
 <span class="tag">카드 4 · 다른 Google 계정으로 등록</span>
 <h2 id="googleProfileTitle">Google 계정 B에 두 번째 패스키 저장</h2>
-<p class="note">Google 이메일을 선택하는 버튼은 WebAuthn에 없습니다. 대신 <strong>Chrome 프로필 A(기존 horse)</strong>에서 5분짜리 등록 링크를 발급하고, 그 링크를 <strong>Google 계정 B로 로그인한 별도 Chrome 프로필</strong>에서 열어 새 패스키를 생성할 수 있습니다. 사이트 계정은 여전히 <strong>owner 1개</strong>입니다.</p>
+<p class="note">Google 이메일을 선택하는 버튼은 WebAuthn에 없습니다. 대신 <strong>Chrome 프로필 A(기존 horse)</strong>에서 5분짜리 등록 링크를 발급하고, 그 링크를 <strong>Google 계정 B로 로그인한 별도 Chrome 프로필</strong>에서 열어 새 패스키를 생성할 수 있습니다. 등록한 패스키는 현재 로그인된 사이트 계정에 연결됩니다.</p>
 <div id="profileSender">
 <label for="profileNewName"><strong>다른 Google 계정에 등록할 새 패스키 이름</strong></label>
 <div class="actions"><input id="profileNewName" type="text" value="horse2" maxlength="48" placeholder="새 패스키 이름" style="min-width:230px;flex:1;padding:12px;border:1px solid #b9c8db;border-radius:10px">
