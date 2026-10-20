@@ -116,7 +116,7 @@ test('phone option requests hybrid smartphone credential and binds the requested
  assert.ok(edge.includes('excludeCredentials:keys.map'));
  assert.ok(edge.includes('requested_mode:mode'));
  assert.ok(edge.includes("!==issued.requested_mode"));
- assert.ok(edge.includes("'phone','unknown'"));
+ assert.ok(edge.includes("'phone','bitwarden','unknown'"));
  assert.ok(client.includes("provider==='phone'"));
  assert.ok(client.includes("mode==='phone'"));
  assert.ok(client.includes('USB 보안 키 삽입 창'));
