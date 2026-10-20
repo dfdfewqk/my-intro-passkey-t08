@@ -8,90 +8,170 @@ const keyCode=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8
 const loginCode=fs.readFileSync(new URL('../client/login.js',import.meta.url),'utf8');
 const enrollCode=fs.readFileSync(new URL('../client/enroll.js',import.meta.url),'utf8');
 
-function simulatedClient({holdInitial=false}={}){
+function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}={}){
  const elements=new Map(), listeners=new Map();
- class FakeElement {
-   constructor(id='') { this.id=id;this.disabled=id==='keyAdd'||id==='keyEnrollmentFields';this.hidden=false;this.textContent='';this.children=[];this.handlers={};this.focused=false;this.className='';this.value=''; }
-   addEventListener(type,fn){this.handlers[type]=fn;}
-   append(...items){this.children.push(...items);}
-   replaceChildren(...items){this.children=items;}
-   focus(){this.focused=true;}
+ class FakeElement{
+  constructor(id=''){
+   this.id=id;this.disabled=false;this.hidden=false;this.textContent='';
+   this.children=[];this.handlers={};this.focused=false;this.className='';
+   this.value=id==='additionalKeyName'?'horse2':id==='additionalKeyProvider'?'device':'';
+  }
+  addEventListener(type,fn){this.handlers[type]=fn;}
+  append(...items){this.children.push(...items);}
+  replaceChildren(...items){this.children=items;}
+  focus(){this.focused=true;}
  }
  const el=id=>{if(!elements.has(id))elements.set(id,new FakeElement(id));return elements.get(id);};
- let signedIn=false, firstResolve, requestCount=0;
- const validKeys=[{id:'credential-test-only',name:'horse',createdAt:'2026-10-20T00:55:49Z',storageProvider:'google'}];
- const fakeFetch=async (_url,{body}={})=>{
-   const request=JSON.parse(body||'{}');
-   if(request.action!=='list') throw Error('Only inventory list is permitted by this UI mock');
+ let signedIn=false,firstResolve,requestCount=0,authPrompts=0,createCalls=0,cancelCalls=0;
+ let created=0,pendingCreateResolve;
+ const validKeys=[{id:'credential-horse',name:'horse',createdAt:'2026-10-20T00:55:49Z',storageProvider:'google'}];
+ const getJson=(status,body)=>({status,json:async()=>body});
+ const fakeFetch=async(_url,{body}={})=>{
+  const request=JSON.parse(body||'{}');
+  if(request.action==='list'){
    requestCount++;
-   if(holdInitial&&requestCount===1) return new Promise(resolve=>{firstResolve=resolve;});
-   return {status:signedIn?200:401,json:async()=>signedIn?{passkeys:validKeys}:{error:'authentication_required'}};
+   if(holdInitial&&requestCount===1)return new Promise(resolve=>{firstResolve=resolve;});
+   return signedIn?getJson(200,{passkeys:validKeys}):getJson(401,{error:'authentication_required'});
+  }
+  if(request.action==='options'){
+   assert.equal(signedIn,true,'options require verified owner session');
+   return getJson(200,{challengeId:'11111111-2222-4333-8444-555555555555',
+    challengeFingerprint:'abc123',options:{challenge:'Y2hhbGxlbmdl',
+    user:{id:'dDgtb3duZXItdjE',name:'owner',displayName:'Owner'},
+    rp:{id:'my-intro-t08.vercel.app',name:'Intro'},pubKeyCredParams:[{type:'public-key',alg:-7}],
+    excludeCredentials:[{id:'credential-horse',type:'public-key'}]}});
+  }
+  if(request.action==='cancel'){
+   cancelCalls++;return getJson(200,{canceled:true});
+  }
+  if(request.action==='verify'){
+   assert.equal(signedIn,true);
+   assert.equal(request.name,'horse2');
+   assert.equal(request.storageProvider,'device');
+   created++;validKeys.push({id:'new-credential',name:'horse2',createdAt:'2026-10-20T02:12:00Z'});
+   return getJson(200,{verified:true,passkeyStored:true,totalPasskeys:validKeys.length});
+  }
+  throw Error('Unexpected API action: '+request.action);
  };
  const window={
+   PublicKeyCredential:class{},
+   isSecureContext:true,
    addEventListener(type,fn){if(!listeners.has(type))listeners.set(type,[]);listeners.get(type).push(fn);},
    dispatchEvent(event){for(const fn of listeners.get(event.type)||[])fn(event);},
-   t08StartLogin:async()=>{signedIn=true;window.dispatchEvent({type:'t08-auth-state',detail:{authenticated:true}});}
+   t08StartLogin:async()=>{authPrompts++;if(!loginSucceeds)return false;
+     signedIn=true;window.dispatchEvent({type:'t08-auth-state',detail:{authenticated:true}});return true;}
  };
+ const navigator={credentials:{create:async ({signal})=>{
+   createCalls++;
+   if(holdCreate)return new Promise((resolve,reject)=>{
+     pendingCreateResolve=resolve;
+     signal.addEventListener('abort',()=>{const error=new Error('Aborted');error.name='AbortError';reject(error);});
+   });
+   return {id:'new-credential',toJSON:()=>({
+     id:'new-credential',rawId:'bmV3',type:'public-key',
+     response:{attestationObject:'b2s',clientDataJSON:'b2s',transports:['internal']},
+     clientExtensionResults:{}
+   })};
+ }}};
  const document={getElementById:el,createElement(tag){return new FakeElement(tag);}};
- const sessionStorage={getItem(){return null;},setItem(){}};
- const context={window,document,fetch:fakeFetch,Date,console,sessionStorage,AbortController,PublicKeyCredential:class{},navigator:{},location:{origin:'https://my-intro-t08.vercel.app'},CustomEvent:class{},setTimeout};
- vm.runInNewContext(keyCode,context);
- return {el,window,setBusy:context.setKeyBusy,releaseInitial:()=>firstResolve?.({status:401,json:async()=>({error:'authentication_required'})})};
+ const values=new Map();
+ const sessionStorage={getItem(k){return values.get(k)||null;},setItem(k,v){values.set(k,v);}};
+ const context={window,document,fetch:fakeFetch,Date,console,sessionStorage,
+  AbortController,DOMException,navigator,location:{origin:'https://my-intro-t08.vercel.app'},
+  PublicKeyCredential:class{},CustomEvent:class{},setTimeout,atob};
+ vm.createContext(context);
+ vm.runInContext(keyCode,context);
+ return {el,window,context,setBusy:context.setKeyBusy,
+  setSignedIn(value){signedIn=value;window.dispatchEvent({type:'t08-auth-state',detail:{authenticated:value}});},
+  get stats(){return {authPrompts,createCalls,cancelCalls,created};},
+  releaseInitial:()=>firstResolve?.(getJson(401,{error:'authentication_required'})),
+  releaseCreate:()=>pendingCreateResolve?.(null)};
 }
 const flush=async()=>{await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));};
 
-test('Card 4 has a direct sign-in step before the initially disabled additional credential form',()=>{
- assert.ok(html.indexOf('id="keyGate"')<html.indexOf('id="keyEnrollmentFields"'));
+test('New credential form remains editable and Add clickable without a session',()=>{
+ assert.match(html,/id="keyAdd"(?![^>]*disabled)/);
+ assert.match(html,/id="keyEnrollmentFields"(?![^>]*disabled)/);
  assert.match(html,/id="keyUnlock"/);
- assert.match(html,/id="keyEnrollmentFields" disabled/);
  assert.match(html,/id="registerPanel" hidden/);
- assert.match(html,/id="keyAdd" disabled/);
 });
-test('Consumed first enrollment stays out of the active UI',()=>{
+test('Old bootstrap enrollment is hidden after first key registration',()=>{
  assert.ok(enrollCode.includes("el('registerPanel').hidden=true"));
  assert.ok(enrollCode.includes("sessionStorage.removeItem('t08_owner_invitation')"));
 });
-test('Unauthenticated UI locks the form; in-panel WebAuthn login unlocks it',async()=>{
+test('Anonymous user can type details and start Add, which authenticates and registers a second key',async()=>{
  const env=simulatedClient();
  await flush();
- assert.equal(env.el('keyAdd').disabled,true);
  assert.equal(env.el('keyGate').hidden,false);
- assert.equal(env.el('keyEnrollmentFields').disabled,true);
- await env.el('keyUnlock').handlers.click();
- await flush();
- assert.equal(env.el('keyGate').hidden,true);
  assert.equal(env.el('keyAdd').disabled,false);
  assert.equal(env.el('keyEnrollmentFields').disabled,false);
- assert.equal(env.el('additionalKeyName').focused,true);
- assert.ok(env.el('keyListDetailed').children.length>0);
+ await env.el('keyAdd').handlers.click();
+ await flush();
+ assert.equal(env.stats.authPrompts,1);
+ assert.equal(env.stats.createCalls,1);
+ assert.equal(env.stats.created,1);
+ assert.equal(env.el('keyAdd').disabled,false);
+ assert.equal(env.el('keyEnrollmentFields').disabled,false);
+ assert.equal(env.el('keyCountDetailed').textContent,'등록된 패스키: 2개');
 });
-test('An old 401 inventory response cannot re-lock the UI after successful login',async()=>{
+test('Canceling WebAuthn login preserves name and does not start credential creation',async()=>{
+ const env=simulatedClient({loginSucceeds:false});
+ await flush();
+ await env.el('keyAdd').handlers.click();
+ await flush();
+ assert.equal(env.stats.authPrompts,1);
+ assert.equal(env.stats.createCalls,0);
+ assert.equal(env.stats.created,0);
+ assert.equal(env.el('additionalKeyName').value,'horse2');
+ assert.equal(env.el('keyAdd').disabled,false);
+ assert.equal(env.el('keyEnrollmentFields').disabled,false);
+});
+test('Expired session transparently asks for passkey login before creating new credential',async()=>{
+ const env=simulatedClient();
+ await flush();
+ env.setSignedIn(true);
+ await flush();
+ env.setSignedIn(false);
+ await flush();
+ await env.el('keyAdd').handlers.click();
+ await flush();
+ assert.equal(env.stats.authPrompts,1);
+ assert.equal(env.stats.created,1);
+});
+test('A delayed earlier 401 cannot re-lock add controls after successful authentication',async()=>{
  const env=simulatedClient({holdInitial:true});
  await flush();
- await env.el('keyUnlock').handlers.click();
+ await env.el('keyAdd').handlers.click();
  await flush();
  env.releaseInitial();
  await flush();
- assert.equal(env.el('keyGate').hidden,true);
+ assert.equal(env.stats.created,1);
  assert.equal(env.el('keyAdd').disabled,false);
+ assert.equal(env.el('keyEnrollmentFields').disabled,false);
 });
-test('Cross-session auth checks abort stale private data retrieval and hide previous vault data',()=>{
- assert.ok(loginCode.includes('revision!==authRevision'));
- assert.ok(loginCode.includes('privateRequest.abort()'));
- assert.ok(loginCode.includes('if(!ok)lockVault()'));
- assert.ok(loginCode.includes('window.t08StartLogin=login'));
-});
-
-test('Authenticated enrollment keeps Cancel available while a passkey dialog is active',async()=>{
- const env=simulatedClient();
+test('Add is briefly disabled while an authenticator registration is pending; Cancel stays active',async()=>{
+ const env=simulatedClient({holdCreate:true});
  await flush();
- await env.el('keyUnlock').handlers.click();
+ const submit=env.el('keyAdd').handlers.click();
  await flush();
- env.setBusy(true);
  assert.equal(env.el('keyAdd').disabled,true);
  assert.equal(env.el('keyCancel').disabled,false);
  assert.equal(env.el('keyEnrollmentFields').disabled,false);
- env.setBusy(false);
+ await env.el('keyCancel').handlers.click();
+ await submit;
+ await flush();
+ assert.equal(env.stats.created,0);
+ assert.ok(env.stats.cancelCalls>=1);
  assert.equal(env.el('keyAdd').disabled,false);
- assert.equal(env.el('keyCancel').disabled,true);
+ assert.equal(env.el('keyEnrollmentFields').disabled,false);
+});
+test('Login returns a definite result so add flow cannot treat cancellation as success',()=>{
+ assert.ok(loginCode.includes("return true;"));
+ assert.ok(loginCode.includes("return false;"));
+ assert.ok(keyCode.includes('const ok=await login();'));
+});
+test('Stale private data fetches are ignored and old vault contents are locked after logout',()=>{
+ assert.ok(loginCode.includes('revision!==authRevision'));
+ assert.ok(loginCode.includes('privateRequest.abort()'));
+ assert.ok(loginCode.includes('if(!ok)lockVault()'));
 });
