@@ -54,7 +54,7 @@ test('different Chrome profile redeems a ticket with no session, only limited en
  const old=globalThis.fetch;let captured;
  globalThis.fetch=async(url,options)=>{
   captured={url,body:JSON.parse(options.body)};
-  return {status:200,json:async()=>({challengeId:'challenge-id',options:{excludeCredentials:[{id:'existing'}]}})};
+  return {status:200,json:async()=>({challengeId:'challenge-id',options:{user:{id:'unique-handle'}}})};
  };
  try{
   const {out,res}=reply();
@@ -63,7 +63,7 @@ test('different Chrome profile redeems a ticket with no session, only limited en
   assert.equal(captured.body.ticket,token);
   assert.equal(captured.body.session,undefined);
   assert.ok(captured.url.endsWith('/functions/v1/t08-profile'));
-  assert.equal(out.body.options.excludeCredentials.length,1);
+  assert.equal(out.body.options.user.id,'unique-handle');
  }finally{globalThis.fetch=old;}
 });
 test('gateway disallows unrelated actions, method misuse, and tokenless verification',async()=>{
@@ -85,7 +85,7 @@ test('server only finalizes after verified WebAuthn signature and atomically con
  assert.ok(source.includes('requireUserPresence:true,requireUserVerification:false'));
  assert.ok(source.includes("'t08_finalize_profile_enrollment'"));
  assert.ok(source.includes(".delete().eq('ticket_hash',ticket.token_hash).eq('id',input.challengeId)"));
- assert.ok(source.includes('excludeCredentials:keys.map'));
+ assert.ok(source.includes('registration_user_handle:handleEncoded'));
  assert.ok(source.includes('consumed_at'));
  assert.ok(source.includes('issuing_session_hash'));
 });

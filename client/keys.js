@@ -177,7 +177,7 @@ async function addPasskey(){
   const ready=await ensureEnrollmentSession();
   if(!ready)return;
   sayKeys('로그인 확인 완료. 새로운 패스키 발급 질문을 서버에서 요청 중입니다…');
-  let issued=await keysApi('options',{storageProvider:provider});
+  let issued=await keysApi('options',{storageProvider:provider,name});
   if(issued.status===401){
    keyAuthorized=false;
    lockManagement();
@@ -190,7 +190,7 @@ async function addPasskey(){
   const attachment=issued.data.options.authenticatorSelection?.authenticatorAttachment||'브라우저 자동 선택';
   const hints=issued.data.options.hints||[];
   addEvidence('추가 등록 질문 HTTP 200 · 지문 '+issued.data.challengeFingerprint+
-   ' · 기존 패스키 제외 '+(issued.data.options.excludeCredentials?.length||0)+'개'+
+   ' · 새 자격증명에 독립 사용자 ID 발급'+`+`' · 기존 자격증명 덮어쓰기 방지'+
    ' · 요청 저장 방식 '+requested+' · authenticatorAttachment '+attachment+
    ' · hints '+(hints.join(',')||'없음'));
   const guidance=provider==='bitwarden'

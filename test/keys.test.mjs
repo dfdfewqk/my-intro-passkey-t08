@@ -90,14 +90,14 @@ test('server requests physical security key and Windows platform with WebAuthn o
  assert.ok(source.includes("'security-key'"));
  assert.ok(source.includes("'client-device'"));
  assert.ok(source.includes("authenticatorAttachment:attachment"));
- assert.ok(source.includes('excludeCredentials:keys.map'));
+ assert.ok(source.includes('registrationHandle=crypto.getRandomValues'));
  assert.ok(source.includes('requested_mode:mode'));
  assert.ok(source.includes("!==issued.requested_mode"));
 });
 test('client reports browser-selected authenticator and explains Google duplicate error',async()=>{
  const fs=await import('node:fs');
  const source=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
- assert.ok(source.includes("keysApi('options',{storageProvider:provider})"));
+ assert.ok(source.includes("keysApi('options',{storageProvider:provider,name})"));
  assert.ok(source.includes("credential.authenticatorAttachment"));
  assert.ok(source.includes("e.name==='InvalidStateError'"));
  assert.ok(source.includes('기존 패스키 중복'));
@@ -113,7 +113,7 @@ test('phone option requests hybrid smartphone credential and binds the requested
  assert.ok(edge.includes("mode==='security_key'?'cross-platform':mode==='device'?'platform':undefined"));
  assert.ok(!edge.includes("mode==='security_key'||mode==='phone'?'cross-platform'"));
  assert.ok(edge.includes("mode==='phone'?['hybrid']"));
- assert.ok(edge.includes('excludeCredentials:keys.map'));
+ assert.ok(edge.includes('registration_user_handle:registrationHandle64'));
  assert.ok(edge.includes('requested_mode:mode'));
  assert.ok(edge.includes("!==issued.requested_mode"));
  assert.ok(edge.includes("'phone','bitwarden','unknown'"));
@@ -149,9 +149,9 @@ test('independent Bitwarden extension mode requests native-compatible WebAuthn w
  assert.ok(server.includes("'phone','bitwarden','unknown'].includes"));
  assert.ok(server.includes("mode==='device'?'platform':undefined"));
  assert.ok(server.includes("mode==='device'?['client-device']:[]"));
- assert.ok(html.includes('value="bitwarden" selected'));
+ assert.ok(html.includes('value="google" selected'));
  assert.ok(client.includes("mode==='bitwarden'"));
  assert.ok(client.includes("provider==='bitwarden'"));
- assert.ok(server.includes('excludeCredentials:keys.map'));
+ assert.ok(server.includes('p_user_handle:issued.registration_user_handle'));
  assert.ok(server.includes('requested_mode:mode'));
 });

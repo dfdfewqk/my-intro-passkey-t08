@@ -39,7 +39,7 @@ function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}
     challengeFingerprint:'abc123',options:{challenge:'Y2hhbGxlbmdl',
     user:{id:'dDgtb3duZXItdjE',name:'owner',displayName:'Owner'},
     rp:{id:'my-intro-t08.vercel.app',name:'Intro'},pubKeyCredParams:[{type:'public-key',alg:-7}],
-    excludeCredentials:[{id:'credential-horse',type:'public-key'}]}});
+    excludeCredentials:[]}});
   }
   if(request.action==='cancel'){
    cancelCalls++;return getJson(200,{canceled:true});

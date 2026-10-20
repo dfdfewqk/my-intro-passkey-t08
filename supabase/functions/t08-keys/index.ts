@@ -58,6 +58,14 @@ Deno.serve(async(req)=>{
   const mode=['google','device','security_key','phone','bitwarden'].includes(String(input.storageProvider))
     ? String(input.storageProvider):'';
   if(!mode)return json({error:'storage_mode_required'},400);
+  const newName=typeof input.name==='string'?input.name.trim():'';
+  if(newName.length<2||newName.length>48)return json({error:'invalid_display_name'},400);
+  // The old code reused the *same* WebAuthn user.id for every key.
+  // A synced passkey provider may prevent creation or replace the older credential.
+  // Issue a fresh WebAuthn identity for this particular credential, but map all
+  // successful credentials back to the single site owner_id=1 in Postgres.
+  const registrationHandle=crypto.getRandomValues(new Uint8Array(32));
+  const registrationHandle64=toB64(registrationHandle);
   // 'google' lets Chrome display its regular chooser (site cannot select a Google account).
   // Local Windows Hello and roaming security-key modes are genuine WebAuthn
   // authenticator criteria, not just labels in the site's UI.
@@ -67,14 +75,17 @@ Deno.serve(async(req)=>{
     mode==='security_key'?['security-key']:
     mode==='device'?['client-device']:[];
   const optionsBase=await generateRegistrationOptions({
-   rpName:'내 소개 · 개인 자료실',rpID:RP,userName:'owner',userDisplayName:'Owner',
-   userID:new TextEncoder().encode('t08-owner-v1'),
+   rpName:'내 소개 · 개인 자료실',rpID:RP,
+   userName:'owner-'+registrationHandle64.slice(0,12),userDisplayName:newName,
+   userID:registrationHandle,
    attestationType:'none',supportedAlgorithmIDs:[-7,-257],
    authenticatorSelection:{residentKey:'preferred',userVerification:'discouraged',
     ...(attachment?{authenticatorAttachment:attachment}:{})},
-   timeout:120000,
-   excludeCredentials:keys.map(k=>({id:k.credential_id,
-    transports:Array.isArray(k.transports)?k.transports:undefined}))
+   timeout:120000
+   // No excludeCredentials: those IDs refer to other WebAuthn handles, but all
+   // map to the same *site* owner. In the same synced manager, excluding them
+   // would reject a perfectly valid additional credential via InvalidStateError.
+   // Reject genuine credential-ID collisions transactionally in the DB.
   });
   // The 'bitwarden' mode also deliberately requests no attachment/hints: the
   // user's installed password manager extension can intercept navigator.credentials.create.
@@ -83,10 +94,12 @@ Deno.serve(async(req)=>{
   // Windows' native security dialog can otherwise default to USB keys,
   // while 'hybrid' remains only an advisory browser hint, not a QR guarantee.
   // A separate device may need to open the URL directly for enrollment.
-  // Always keep excludeCredentials to prevent adding the same authenticator again.
+  // Never treat an additional Google-managed credential as an existing WebAuthn
+  // account identity: each enrollment gets a distinct user.id and DB collision check.
   const options={...optionsBase,hints:recommendedHints};
   const {data:issued,error:saveError}=await db.from('t08_add_challenges')
-   .insert({challenge:options.challenge,session_hash:sessionHash,requested_mode:mode,
+   .insert({challenge:options.challenge,registration_user_handle:registrationHandle64,
+    session_hash:sessionHash,requested_mode:mode,
     expires_at:new Date(Date.now()+3*60*1000).toISOString()})
    .select('id').single();
   if(saveError||!issued)return json({error:'challenge_storage_failed'},503);
@@ -117,9 +130,11 @@ Deno.serve(async(req)=>{
    ?String(input.storageProvider):'unknown';
   const {data:issued,error}=await db.from('t08_add_challenges')
    .delete().eq('id',challengeId).eq('session_hash',sessionHash)
-   .gt('expires_at',new Date().toISOString()).select('challenge,requested_mode').maybeSingle();
+   .gt('expires_at',new Date().toISOString()).select('challenge,requested_mode,registration_user_handle').maybeSingle();
   if(error)return json({error:'storage_unavailable'},503);
   if(!issued)return json({error:'challenge_expired_or_consumed'},409);
+  if(typeof issued.registration_user_handle!=='string'||!issued.registration_user_handle)
+    return json({error:'legacy_challenge_restart_required',passkeyStored:false},409);
   if(String(input.storageProvider)!==issued.requested_mode)
     return json({error:'selected_storage_mode_changed',passkeyStored:false},400);
   let verified;
@@ -135,7 +150,7 @@ Deno.serve(async(req)=>{
   const {data:saved,error:saveError}=await db.rpc('t08_add_owner_passkey',{
     p_session_hash:sessionHash,p_credential_id:credential.id,p_name:name,
     p_public_key:toB64(credential.publicKey),
-    p_user_handle:toB64(new TextEncoder().encode('t08-owner-v1')),
+    p_user_handle:issued.registration_user_handle,
     p_counter:credential.counter,p_device_type:credentialDeviceType,
     p_backed_up:credentialBackedUp,p_transports:credential.transports||[],
     p_storage_provider:storageProvider

@@ -114,7 +114,7 @@ html{scroll-behavior:smooth}
 <hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
 <h2 id="addSecondKeyTitle">새 패스키 등록 · 언제든 시작 가능</h2>
 <p class="note">이름과 저장 위치는 로그인하지 않았어도 입력할 수 있습니다. 등록 버튼을 누르면 필요할 때 기존 horse로 인증하고 새 패스키를 생성합니다. 기존 패스키는 삭제되지 않습니다.</p>
-<p class="note">기존 <strong>horse</strong> 패스키는 그대로 보존합니다. Google 관리자가 새 패스키 생성을 계속 가로채면 <strong>별도의 Bitwarden 패스키 관리자 확장 프로그램</strong>을 사용해 horse2를 만들 수 있습니다. Bitwarden 가입 이메일은 네이버 이메일이어도 됩니다. 사이트가 어느 앱에 저장할지는 강제할 수 없으므로 Bitwarden 저장 창을 직접 확인해야 합니다.</p>
+<p class="note">이번에는 사이트에서 <strong>새 패스키마다 독립된 등록 ID</strong>를 발급해. 기존 Google 계정을 바꾸거나 USB·새 PIN을 준비할 필요는 없어. 이미 저장된 horse는 서버에서 그대로 보존하고, 새로 생성된 패스키는 같은 사이트 계정에 추가돼. 단, Google이 자체적으로 요구하는 잠금 해제는 사이트에서 제거할 수 없어.</p>
 <fieldset class="gatedFields" id="keyEnrollmentFields">
 <div class="registerGrid">
 <label for="additionalKeyName"><strong>새 패스키 이름</strong>
@@ -122,14 +122,14 @@ html{scroll-behavior:smooth}
 <label for="additionalKeyProvider"><strong>실제 저장 위치</strong>
 <select id="additionalKeyProvider">
 <option value="">저장 위치 선택</option>
-<option value="bitwarden" selected>Bitwarden 확장 프로그램 · USB/Google 계정 추가 불필요</option>
+<option value="bitwarden">Bitwarden 확장 프로그램 · 선택 사항</option>
 <option value="phone">다른 휴대전화 연결 시도 · QR 제공은 브라우저에 따라 다름</option>
 <option value="device">이 PC 인증 장치 · Windows Hello 우선</option>
-<option value="google">현재 Chrome 프로필의 Google 비밀번호 관리자</option>
+<option value="google" selected>현재 Chrome의 패스키 관리자 · 새 패스키 만들기</option>
 <option value="security_key">별도 물리 보안 키 · USB/NFC 장치 필요</option>
 </select></label>
 </div>
-<p id="keyProviderHelp" class="note" aria-live="polite">추천: 기존 horse는 Google에 유지하고 새 horse2는 Bitwarden 확장 프로그램에 저장합니다. Bitwarden 계정은 네이버 등 기존 이메일로 가입할 수 있으며, 실제 Bitwarden 저장 창이 나오는지 확인해야 합니다. 확장 프로그램이 없으면 Google/USB 창으로 연결될 수 있습니다. <a href="https://bitwarden.com/help/storing-passkeys/" target="_blank" rel="noopener noreferrer">Bitwarden 공식 안내</a></p>
+<p id="keyProviderHelp" class="note" aria-live="polite">기본 선택으로 바로 horse2를 만들어 봐. 새 패스키는 기존 horse와 다른 등록 ID로 발급하지만, Google 관리자가 자체 PIN을 요구할 수는 있어. 기존 horse는 지우지 마.</p>
 <div class="actions">
 <button class="button" type="button" id="keyAdd">패스키 추가 등록</button>
 <button class="button secondary" type="button" id="keyCancel" disabled>등록 취소</button>

@@ -24,7 +24,10 @@ export default async function handler(req,res){
   allowed.name=body.name;
   allowed.storageProvider=body.storageProvider;
  }else if(action==='cancel')allowed.challengeId=body.challengeId;
- else if(action==='options')allowed.storageProvider=body.storageProvider;
+ else if(action==='options'){
+  allowed.storageProvider=body.storageProvider;
+  allowed.name=body.name;
+ }
  else if(action==='remove')allowed.credentialId=body.credentialId;
  try{
   const r=await fetch(BACKEND,{

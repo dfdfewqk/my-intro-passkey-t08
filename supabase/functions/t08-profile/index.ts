@@ -86,18 +86,22 @@ Deno.serve(async(req)=>{
    if(error)return send({error:'storage_unavailable'},503);
    if(!keys?.length)return send({error:'no_registered_passkey'},409);
    if(keys.length>=10)return send({error:'too_many_passkeys'},409);
-   // Do not specify any Google account, authenticatorAttachment, or hints.
-   // The current Chrome profile decides which Google Password Manager is in use.
+   // Each credential is independent even if both live in the same Google
+   // Password Manager. They all belong to the same site's owner_id=1.
+   const handle=crypto.getRandomValues(new Uint8Array(32));
+   const handleEncoded=base64url(handle);
    const options=await generateRegistrationOptions({
-     rpName:'내 소개 · 개인 자료실',rpID:RP,userName:'owner',userDisplayName:'Owner',
-     userID:new TextEncoder().encode('t08-owner-v1'),attestationType:'none',
+     rpName:'내 소개 · 개인 자료실',rpID:RP,
+     userName:'owner-'+handleEncoded.slice(0,12),userDisplayName:ticket.display_name,
+     userID:handle,attestationType:'none',
      authenticatorSelection:{residentKey:'preferred',userVerification:'discouraged'},
-     supportedAlgorithmIDs:[-7,-257],timeout:120000,
-     excludeCredentials:keys.map(k=>({id:k.credential_id,
-       transports:Array.isArray(k.transports)?k.transports:undefined}))
+     supportedAlgorithmIDs:[-7,-257],timeout:120000
+     // An existing passkey belongs to a different authenticator user handle;
+     // excluding it would reject creating a second credential in the same manager.
    });
    const {data:row,error:saveError}=await db.from('t08_profile_enroll_challenges')
     .insert({ticket_hash:ticket.token_hash,challenge:options.challenge,
+      registration_user_handle:handleEncoded,
       expires_at:new Date(Date.now()+120000).toISOString()}).select('id').single();
    if(saveError||!row)return send({error:'challenge_storage_failed'},503);
    return send({options,challengeId:row.id,displayName:ticket.display_name,
@@ -112,9 +116,11 @@ Deno.serve(async(req)=>{
   if(action==='verify'){
    const {data:row,error}=await db.from('t08_profile_enroll_challenges')
     .delete().eq('ticket_hash',ticket.token_hash).eq('id',input.challengeId)
-    .gt('expires_at',new Date().toISOString()).select('challenge').maybeSingle();
+    .gt('expires_at',new Date().toISOString()).select('challenge,registration_user_handle').maybeSingle();
    if(error)return send({error:'storage_unavailable'},503);
    if(!row)return send({error:'challenge_expired_or_reused'},409);
+   if(typeof row.registration_user_handle!=='string'||!row.registration_user_handle)
+     return send({error:'legacy_challenge_restart_required'},409);
    let verified;
    try{
      verified=await verifyRegistrationResponse({
@@ -128,7 +134,7 @@ Deno.serve(async(req)=>{
    const {data:finish,error:saveError}=await db.rpc('t08_finalize_profile_enrollment',{
      p_ticket_hash:ticket.token_hash,p_credential_id:credential.id,
      p_public_key:base64url(credential.publicKey),
-     p_user_handle:base64url(new TextEncoder().encode('t08-owner-v1')),
+     p_user_handle:row.registration_user_handle,
      p_counter:credential.counter,p_device_type:credentialDeviceType,
      p_backed_up:credentialBackedUp,p_transports:credential.transports||[]
    });
