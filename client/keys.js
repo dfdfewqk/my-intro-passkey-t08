@@ -1,6 +1,6 @@
 // Card 4: second passkey enrollment, safe removal, and server-verified key inventory.
 const keyEl=id=>document.getElementById(id);
-let pendingId=null,waiter=null,lastRemoved=null;
+let pendingId=null,waiter=null,lastRemoved=null,keyAuthorized=false;
 const evidence=[];
 const providerLabels={google:'구글 비밀번호 관리자',device:'기기 자체 / Windows Hello',
  security_key:'외장 보안 키',unknown:'저장 위치 미확인'};
@@ -39,8 +39,10 @@ function setKeyBusy(yes){
   const control=keyEl(id);if(control)control.disabled=yes;
  }
  keyEl('keyCancel').disabled=!yes;
+ keyEl('keyAdd').disabled=yes||!keyAuthorized;
 }
 function lockManagement(){
+ keyAuthorized=false;
  keyEl('keyListDetailed').replaceChildren();
  const node=document.createElement('p');node.className='note';
  node.textContent='로그인 상태에서만 패스키 이름과 등록 날짜를 볼 수 있습니다.';
@@ -54,6 +56,7 @@ async function refreshKeys(){
   sayKeys('먼저 등록된 패스키로 로그인한 다음 관리할 수 있습니다.');return false;}
  if(r.status!==200){sayKeys('목록 조회 오류 HTTP '+r.status+' · '+(r.data.error||''));return false;}
  const keys=r.data.passkeys||[];
+ keyAuthorized=true;
  const list=keyEl('keyListDetailed');
  list.replaceChildren();
  keyEl('keyAdd').disabled=false;
@@ -163,7 +166,6 @@ async function probeDeleted(){
  if(!removed){sayKeys('먼저 등록된 패스키 하나를 삭제한 후 검사하세요.');return;}
  setKeyBusy(true);
  try{
-  const origin=location.origin;
   const options=await fetch('/api/auth',{method:'POST',credentials:'same-origin',
    headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'options'})});
   const body=await options.json();
