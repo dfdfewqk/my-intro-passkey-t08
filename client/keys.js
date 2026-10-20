@@ -45,7 +45,7 @@ function lockManagement(){
  keyAuthorized=false;
  keyEl('keyListDetailed').replaceChildren();
  const node=document.createElement('p');node.className='note';
- node.textContent='로그인 상태에서만 패스키 이름과 등록 날짜를 볼 수 있습니다.';
+ node.textContent='로그인 후 두 번째 패스키를 등록할 수 있습니다. 위쪽 로그인 버튼을 먼저 누르세요.';
  keyEl('keyListDetailed').append(node);
  keyEl('keyAdd').disabled=true;
  keyEl('keyRefresh').disabled=false;
@@ -53,7 +53,7 @@ function lockManagement(){
 async function refreshKeys(){
  const r=await keysApi('list');
  if(r.status===401){lockManagement();
-  sayKeys('먼저 등록된 패스키로 로그인한 다음 관리할 수 있습니다.');return false;}
+  sayKeys('로그인하지 않으면 관리할 수 없습니다. 위쪽 「패스키로 로그인」을 누른 뒤 이곳에서 다시 시도하세요.');return false;}
  if(r.status!==200){sayKeys('목록 조회 오류 HTTP '+r.status+' · '+(r.data.error||''));return false;}
  const keys=r.data.passkeys||[];
  keyAuthorized=true;

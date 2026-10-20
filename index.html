@@ -33,6 +33,13 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 .keyItemHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .keyItem p{margin:7px 0 0}
 
+
+html{scroll-behavior:smooth}
+.legacyArchive{margin-top:14px}
+.legacyArchive summary{cursor:pointer;list-style:revert;padding:13px 16px;border-radius:10px;background:#edf2f8;font-weight:700;color:#324b73}
+.legacyArchive[open] summary{margin-bottom:16px}
+#manageKeysPanel:target{outline:2px solid #b6c8eb;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body><div class="wrap">
@@ -58,6 +65,7 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 <p class="note">카드 3에서는 등록된 패스키로 실제 로그인하고, 서명 검증이 끝난 뒤에만 아래 잠긴 자료를 가져옵니다.</p>
 <div class="actions">
 <button class="button" id="loginPasskey" type="button">패스키로 로그인</button>
+<a class="button secondary" href="#manageKeysPanel">패스키 추가·관리 ↓</a>
 <button class="button secondary" id="logoutPasskey" type="button" disabled data-logged="no">로그아웃 · 재사용 검사</button>
 </div>
 <p id="loginState" class="note">로그인 상태 확인 중…</p>
@@ -78,11 +86,50 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 <div id="status" class="status" role="status" aria-live="polite">아직 확인하지 않았습니다.</div>
 </section>
 </main>
+<section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
+<span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
+<h2 id="manageKeysTitle">두 번째 패스키 추가 및 관리</h2>
+<p class="note">아래가 <strong>두 번째 패스키 등록 화면</strong>입니다. 먼저 기존 패스키로 로그인하세요. 새 패스키 이름과 저장 위치를 입력한 뒤 <strong>패스키 추가 등록</strong>을 누르면 됩니다.
+<a href="#private-title">로그인 버튼으로 이동 ↑</a></p>
+<p id="keyCountDetailed" class="note">패스키 목록 확인 중…</p>
+<div class="actions">
+<button class="button secondary" type="button" id="keyRefresh">패스키 목록 새로고침</button>
+<button class="button secondary" type="button" id="keyProbeDeleted">삭제된 패스키 로그인 거절 확인</button>
+</div>
+<div id="keyListDetailed">로그인한 뒤 목록을 조회할 수 있습니다.</div>
+<p class="note" id="keyZeroRule">패스키가 하나도 남지 않으면 로그인할 수 없으므로 마지막 1개 삭제는 서버에서 차단합니다.</p>
+<hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
+<h2 id="addSecondKeyTitle">새 패스키 등록</h2>
+<p class="note">기존 패스키로 로그인한 상태에서만 등록할 수 있습니다. 같은 구글 비밀번호 관리자에서 기존 패스키가 동기화되어 보이는 것은 두 개로 세지 않습니다. 가능하면 다른 기기나 별도 보안 키에 저장하세요.</p>
+<div class="registerGrid">
+<label for="additionalKeyName"><strong>새 패스키 이름</strong>
+<input id="additionalKeyName" type="text" maxlength="48" placeholder="예: 보조 노트북" value="두 번째 패스키"></label>
+<label for="additionalKeyProvider"><strong>실제 저장 위치</strong>
+<select id="additionalKeyProvider">
+<option value="">저장 위치 선택</option>
+<option value="google">구글 비밀번호 관리자</option>
+<option value="device">기기 자체 / Windows Hello</option>
+<option value="security_key">외장 보안 키</option>
+</select></label>
+</div>
+<div class="actions">
+<button class="button" type="button" id="keyAdd" disabled>패스키 추가 등록</button>
+<button class="button secondary" type="button" id="keyCancel" disabled>등록 취소</button>
+</div>
+<div class="status" id="keyManagementMessage" role="status" aria-live="polite">등록 버튼이 비활성화되어 있다면 위쪽에서 먼저 패스키 로그인을 완료하세요.</div>
+<h2 style="margin-top:24px">등록·삭제 검증 기록</h2>
+<pre id="keyManagementEvidence" class="status evidence">기록 대기 중…</pre>
+<p class="note"><strong>패스키 0개인 경우:</strong> 서버 공개키로 서명을 검증할 방법이 없으므로 로그인할 수 없습니다. 마지막 패스키 삭제는 금지되며, 모든 기기에서 패스키를 잃었다면 별도의 관리자 본인 확인이 필요합니다. 공개 자가 초기화 버튼은 제공하지 않습니다.</p>
+</section>
 <section class="panel" id="registerPanel" style="margin-top:22px" aria-labelledby="registrationTitle">
 <span class="tag">카드 2 · 패스키 등록</span>
 <h2 id="registrationTitle">패스키를 내 기기에 등록하기</h2>
 <p class="note">비밀번호 없이 WebAuthn으로 등록합니다. 최초 등록은 소유자용 일회성 초대 링크로만 허용됩니다. 공개키만 서버에 보관하고 개인키는 기기에 남습니다.</p>
 <p id="passkeyCount" class="note">서버 상태 확인 중…</p>
+<p><a class="button" href="#manageKeysPanel">두 번째 패스키 등록 · 카드 4로 이동 ↓</a></p>
+<details id="card2Details" class="legacyArchive">
+<summary>최초 등록 양식 · 카드 2 증거 다시 보기</summary>
+<p class="note">최초 등록에 사용한 초대는 재사용할 수 없습니다. 이미 패스키가 있다면 이 양식이 아니라 위쪽 카드 4에서 추가 등록하세요.</p>
 <div class="registerGrid">
 <label for="passkeyName"><strong>패스키 이름</strong>
 <input id="passkeyName" placeholder="예: 내 노트북 Chrome" maxlength="48" value="내 첫 번째 패스키"></label>
@@ -118,40 +165,7 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 <h2>서버에 저장한 공개키</h2>
 <pre class="status evidence" id="publicKeyResult">패스키 등록 후 표시됩니다.</pre>
 <p class="note">카드 2 등록 기능은 보존했습니다. 최초 등록 초대는 사용 완료되었으므로 기존 패스키는 로그인 버튼에서 사용합니다.</p>
-</section>
-<section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
-<span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
-<h2 id="manageKeysTitle">내 패스키 목록 및 백업</h2>
-<p class="note">이미 등록한 <strong>horse</strong> 패스키는 그대로 유지합니다. 로그인한 뒤 두 번째 패스키를 등록하고 이름과 날짜를 확인할 수 있습니다.</p>
-<p id="keyCountDetailed" class="note">패스키 목록 확인 중…</p>
-<div class="actions">
-<button class="button secondary" type="button" id="keyRefresh">패스키 목록 새로고침</button>
-<button class="button secondary" type="button" id="keyProbeDeleted">삭제된 패스키 로그인 거절 확인</button>
-</div>
-<div id="keyListDetailed">로그인한 뒤 목록을 조회할 수 있습니다.</div>
-<p class="note" id="keyZeroRule">패스키가 하나도 남지 않으면 로그인할 수 없으므로 마지막 1개 삭제는 서버에서 차단합니다.</p>
-<hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
-<h2>두 번째 패스키 등록하기</h2>
-<p class="note">기존 패스키로 로그인한 상태에서만 등록할 수 있습니다. 같은 구글 비밀번호 관리자에서 기존 패스키가 동기화되어 보이는 것은 두 개로 세지 않습니다. 가능하면 다른 기기나 별도 보안 키에 저장하세요.</p>
-<div class="registerGrid">
-<label for="additionalKeyName"><strong>새 패스키 이름</strong>
-<input id="additionalKeyName" type="text" maxlength="48" placeholder="예: 보조 노트북" value="두 번째 패스키"></label>
-<label for="additionalKeyProvider"><strong>실제 저장 위치</strong>
-<select id="additionalKeyProvider">
-<option value="">저장 위치 선택</option>
-<option value="google">구글 비밀번호 관리자</option>
-<option value="device">기기 자체 / Windows Hello</option>
-<option value="security_key">외장 보안 키</option>
-</select></label>
-</div>
-<div class="actions">
-<button class="button" type="button" id="keyAdd" disabled>패스키 추가 등록</button>
-<button class="button secondary" type="button" id="keyCancel" disabled>등록 취소</button>
-</div>
-<div class="status" id="keyManagementMessage" role="status" aria-live="polite">먼저 기존 패스키로 로그인하세요.</div>
-<h2 style="margin-top:24px">등록·삭제 검증 기록</h2>
-<pre id="keyManagementEvidence" class="status evidence">기록 대기 중…</pre>
-<p class="note"><strong>패스키 0개인 경우:</strong> 서버 공개키로 서명을 검증할 방법이 없으므로 로그인할 수 없습니다. 마지막 패스키 삭제는 금지되며, 모든 기기에서 패스키를 잃었다면 별도의 관리자 본인 확인이 필요합니다. 공개 자가 초기화 버튼은 제공하지 않습니다.</p>
+</details>
 </section>
 <footer>이 화면과 소스에는 실제 연락처·신분증 번호·개인키·비공개 문서 본문을 넣지 않았습니다.</footer>
 </div>

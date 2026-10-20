@@ -159,7 +159,17 @@ function init(){
  setBusy(false);
  try{el('challengeHistory').textContent=JSON.parse(sessionStorage.getItem(LOG_KEY)||'[]')
   .map((x,i)=>(i+1)+'. '+x.time+' | '+x.fingerprint).join('\n')||'발급 기록 없음';}catch{}
- request('status').then(s=>{el('passkeyCount').textContent='저장된 패스키: '+s.registeredCount+'개';})
+ request('status').then(s=>{
+  el('passkeyCount').textContent='서버에 저장된 패스키: '+s.registeredCount+'개';
+  const details=el('card2Details');
+  if(details)details.open=s.registeredCount===0;
+  if(s.registeredCount>0){
+    say('첫 패스키 등록 완료. 두 번째 패스키는 위의 카드 4에서 기존 패스키로 로그인한 뒤 등록하세요.');
+    // A consumed setup invitation cannot authorize additional enrollment.
+    el('registerPasskey').disabled=true;
+    el('compareChallenges').disabled=true;
+  }
+})
   .catch(()=>{el('passkeyCount').textContent='등록 서버 상태를 확인할 수 없습니다.';});
  refreshList();
 }

@@ -88,7 +88,7 @@ async function login(){
  try{
   const issued=await issue();
   state.loginAbort=new AbortController();
-  report('기기의 패스키 확인 창에서 등록한 horse 패스키를 선택하세요.');
+  report('기기의 패스키 확인 창에서 등록된 패스키를 선택하세요.');
   const credential=await navigator.credentials.get({
    publicKey:options(issued.options),signal:state.loginAbort.signal});
   if(!credential)throw Error('user_canceled');
