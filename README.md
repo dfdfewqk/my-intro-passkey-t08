@@ -89,3 +89,7 @@ npm test
 - Chrome이 특정 Google 계정, USB 장치까지 정확히 사용하도록 웹사이트가 강제할 수 있는 것은 아닙니다. `hints`는 브라우저가 무시할 수 있으며 `cross-platform`에는 다른 기기 인증도 포함될 수 있습니다.
 - 브라우저가 `InvalidStateError`를 반환하면 기존 등록된 인증기 중복이라고 구체적으로 안내합니다. 기존 `horse` 패스키는 절대 제거하지 않습니다.
 - `npm test` **37/37 통과**, 배포 화면 200, 기존 보안 API 비인증 요청 401 검증. 실제 기기에서 새 공개키 1개가 생성될지는 사용자 인증 창 확인이 필요합니다.
+
+## 추가 패스키 등록 추천 경로
+
+반복된 Google 기존 패스키 재선택·Windows USB 삽입 창 문제를 피하기 위해 **Bitwarden 브라우저 확장 프로그램** 저장 위치를 지원합니다. 구글/USB 없이 별도 패스키 자격증명을 생성할 수 있는 경로이며, Bitwarden 계정은 네이버 이메일로 만들 수 있습니다. 단, 확장 프로그램의 WebAuthn 요청 수락과 실제 패스키 생성은 사용자가 수행해야 합니다. [등록 화면](https://my-intro-t08.vercel.app/#manageKeysPanel) / [공식 저장 방법](https://bitwarden.com/help/storing-passkeys/). 기존 horse와 서버 인증 정책은 그대로 보존합니다. 자동 테스트 **40/40 통과**.

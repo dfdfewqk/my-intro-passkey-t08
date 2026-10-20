@@ -125,3 +125,19 @@
 - 실제 `horse2` 하드웨어 패스키의 생성 및 서버 DB 저장은 아직 확인 전.
 
 **시도 절차:** https://my-intro-t08.vercel.app/#manageKeysPanel → 이름 `horse2` 입력 → 저장 위치 `다른 휴대전화 · QR코드` → 추가 등록 → 기존 `horse` 인증 → 새 휴대전화 등록 창의 QR 또는 다른 휴대전화 선택 → 별개 저장소로 생성 → 패스키 목록에서 2개 확인. 실패해도 기존 `horse`는 삭제하지 않음.
+
+
+## 2026-10-20 — USB·Google 중복 없이 Bitwarden 확장 프로그램에 두 번째 패스키
+
+브라우저가 Google 비밀번호 관리자에 계속 연결되고 Windows가 QR 대신 물리 USB 키 창을 띄워 기존 방식으로 추가 등록이 불가능한 상황을 확인했습니다. 같은 방법을 반복시키지 않기 위해, **독립적인 소프트웨어 패스키 관리자**인 Bitwarden 브라우저 확장 프로그램을 제안하고 실제 등록 선택지를 추가했습니다.
+
+- 저장 위치 `bitwarden`을 `t08_add_challenges.requested_mode`, `t08_passkeys.storage_provider`의 서버 DB 유효값에 추가.
+- 등록 옵션의 `bitwarden` 선택 시 `authenticatorAttachment`를 설정하지 않고 `hints`도 지정하지 않습니다. 브라우저 확장 프로그램이 WebAuthn 생성 요청을 가로채서 별도의 패스키를 저장하도록 허용합니다.
+- Bitwarden 공식 문서: <https://bitwarden.com/help/storing-passkeys/> / 신규 계정은 네이버 등 기존 이메일로 가입할 수 있음: <https://bitwarden.com/help/create-bitwarden-account/>.
+- 확장 프로그램에서 `Settings → Notifications → Ask to save and use passkeys`를 활성화하고, 사이트에서 기존 `horse`로 로그인한 뒤 `horse2`를 Bitwarden에 생성합니다.
+- **사이트가 확장 프로그램 설치·저장 창을 강제할 수는 없습니다.** Bitwarden 창이 나오지 않고 Google이나 USB 창이 보이면 해당 등록을 취소하고 브라우저 확장 상태를 확인합니다. 사용자가 선택한 저장소는 신뢰 가능한 하드웨어 증명이 아닌 자체 표시 기록입니다.
+- 서버는 등록된 패스키를 `excludeCredentials`로 계속 제외하고 서명·challenge·owner 세션을 검증합니다. 기존 `horse`의 서버 기록은 변경하지 않습니다.
+- 자동 검증 `npm test`: 40개 통과 / 실패 0개, JavaScript 구문 검사 통과.
+- 실제 운영 배포 HTML 200, Bitwarden 메뉴 기본 선택 및 UI 안내 확인, 스크립트 200, 비인증 등록 요청 401로 차단 확인.
+- **실제 두 번째 패스키 생성·서버 등록은 여전히 사용자 브라우저에서 완료해야 하며 성공했다고 간주하지 않습니다.**
+
