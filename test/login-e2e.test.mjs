@@ -58,7 +58,7 @@ function harness({missingPrivate=false,outage=false}={}){
  }}};
  const context={window,document,navigator,fetch,Date,AbortController,CustomEvent:
   class CustomEvent{constructor(type,options){this.type=type;this.detail=options?.detail;}},
-  console,atob,btoa};
+  console,atob,btoa,PublicKeyCredential:class PublicKeyCredential{}};
  vm.createContext(context);vm.runInContext(script,context);
  return {el,window,context,records,
   get info(){return {asks,privateReads,logins,loggedIn};}};
