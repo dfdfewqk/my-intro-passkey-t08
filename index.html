@@ -31,7 +31,7 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 </style>
 </head>
 <body><div class="wrap">
-<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 2</span></header>
+<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 3</span></header>
 <h1>공개 소개는 그대로, 내 기록은 따로</h1>
 <p class="lead">왼쪽 소개 페이지는 누구나 볼 수 있습니다. 오른쪽 개인 자료실은 서버에서 접근을 차단하며, 비공개 문서 본문은 인증하기 전에는 내려오지 않습니다.</p>
 <main class="grid">
@@ -50,11 +50,25 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 <div><p class="lock" aria-hidden="true">🔒</p><strong>자료실이 잠겨 있습니다</strong>
 <p>패스키로 본인 확인을 마치기 전에는 자료를 가져올 수 없습니다.</p>
 </div></div>
-<p class="note">카드 1의 서버 차단은 유지합니다. 카드 2에서는 패스키를 등록하고, 카드 3에서 로그인합니다.</p>
-<p><button class="button" type="button" disabled aria-disabled="true">패스키 로그인 (카드 3)</button></p>
+<p class="note">카드 3에서는 등록된 패스키로 실제 로그인하고, 서명 검증이 끝난 뒤에만 아래 잠긴 자료를 가져옵니다.</p>
+<div class="actions">
+<button class="button" id="loginPasskey" type="button">패스키로 로그인</button>
+<button class="button secondary" id="logoutPasskey" type="button" disabled data-logged="no">로그아웃 · 재사용 검사</button>
+</div>
+<p id="loginState" class="note">로그인 상태 확인 중…</p>
+<div id="loginMessage" class="status" role="status" aria-live="polite">로그인 준비 중…</div>
+<p class="note" id="sessionProof">세션 값: [가림]</p>
+<hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
+<h2>인증 보안 테스트</h2>
+<div class="actions">
+<button class="button secondary" id="loginCompare" type="button">로그인 질문 2회 비교</button>
+<button class="button secondary" id="loginFake" type="button">틀린 서명 · 재사용 검사</button>
+</div>
+<p class="note">테스트에서는 잘못된 서명을 보내고, 이미 소비한 일회용 질문도 다시 보냅니다. 토큰은 화면에 표시하지 않습니다.</p>
+<pre id="loginEvidence" class="status evidence">아직 로그인 검증 기록이 없습니다.</pre>
 <hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
 <h2>서버 접근 차단 확인</h2>
-<p class="note">로그인하지 않은 상태에서 보호 API를 호출합니다. 통과 응답은 HTTP 401입니다.</p>
+<p class="note">로그인 전이나 로그아웃 후에는 HTTP 401, 검증된 로그인 후에는 HTTP 200이 나와야 합니다.</p>
 <p><button class="button secondary" type="button" id="check">비공개 API 응답 확인</button></p>
 <div id="status" class="status" role="status" aria-live="polite">아직 확인하지 않았습니다.</div>
 </section>
@@ -98,7 +112,7 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 <pre class="status evidence" id="requestResult">패스키 등록 후 표시됩니다.</pre>
 <h2>서버에 저장한 공개키</h2>
 <pre class="status evidence" id="publicKeyResult">패스키 등록 후 표시됩니다.</pre>
-<p class="note">카드 2는 등록 단계이며 비공개 자료실 로그인 기능은 카드 3에서 구현합니다. 현재 비공개 API는 계속 401을 반환합니다.</p>
+<p class="note">카드 2 등록 기능은 보존했습니다. 최초 등록 초대는 사용 완료되었으므로 기존 패스키는 로그인 버튼에서 사용합니다.</p>
 </section>
 
 <footer>이 화면과 소스에는 실제 연락처·신분증 번호·개인키·비공개 문서 본문을 넣지 않았습니다.</footer>
@@ -117,4 +131,5 @@ document.getElementById('check').addEventListener('click',async()=>{
 });
 </script>
 <script type="module" src="/client/enroll.js"></script>
+<script type="module" src="/client/login.js"></script>
 </body></html>
