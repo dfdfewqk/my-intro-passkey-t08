@@ -36,31 +36,31 @@ function serializeCreated(c){
    transports:r.getTransports?.()||[]},
   clientExtensionResults:c.getClientExtensionResults?.()||{}};
 }
+// The form is always editable. Only submitting a new credential requires owner authentication.
 function setKeyBusy(yes){
  keyOperationBusy=yes;
- for(const id of ['keyRefresh','keyAdd','keyCancel','keyProbeDeleted']){
-  const control=keyEl(id);if(control)control.disabled=yes;
+ for(const id of ['keyRefresh','keyAdd','keyProbeDeleted']){
+  keyEl(id).disabled=yes;
  }
- keyEl('keyCancel').disabled=!yes;
- keyEl('keyAdd').disabled=yes||!keyAuthorized;
+ keyEl('keyCancel').disabled=!yes || !pendingId;
  keyEl('keyUnlock').disabled=yes;
- // Keep the Cancel button reachable during an in-progress authenticator prompt.
- keyEl('keyEnrollmentFields').disabled=!keyAuthorized;
+ keyEl('keyEnrollmentFields').disabled=false;
 }
 function lockManagement(){
  ++inventoryRevision;
  keyAuthorized=false;
  keyEl('keyGate').hidden=false;
- keyEl('keyGateStatus').textContent='로그아웃 상태입니다. 이곳에서 로그인하면 새 패스키를 이어서 등록할 수 있습니다.';
+ keyEl('keyGateStatus').textContent='현재 로그인하지 않았습니다. 이름과 저장 위치를 미리 고를 수 있으며, 패스키 추가 등록을 누르면 기존 패스키로 본인 확인을 시작합니다.';
  keyEl('keyUnlock').disabled=keyOperationBusy;
- keyEl('keyEnrollmentFields').disabled=true;
- keyEl('keyCountDetailed').textContent='로그인 후 패스키 목록을 확인할 수 있습니다.';
+ keyEl('keyEnrollmentFields').disabled=false;
+ keyEl('keyCountDetailed').textContent='패스키 목록은 기존 패스키로 로그인한 다음 표시됩니다.';
  keyEl('keyListDetailed').replaceChildren();
- const node=document.createElement('p');node.className='note';
- node.textContent='로그인 후 두 번째 패스키를 등록할 수 있습니다. 위쪽 로그인 버튼을 먼저 누르세요.';
+ const node=document.createElement('p');
+ node.className='note';
+ node.textContent='패스키 목록은 로그인 후 확인할 수 있습니다. 새 패스키 정보 입력과 등록 시작은 지금도 가능합니다.';
  keyEl('keyListDetailed').append(node);
- keyEl('keyAdd').disabled=true;
- keyEl('keyRefresh').disabled=false;
+ keyEl('keyAdd').disabled=keyOperationBusy;
+ keyEl('keyRefresh').disabled=keyOperationBusy;
 }
 async function refreshKeys(){
  const revision=++inventoryRevision;
@@ -82,9 +82,10 @@ async function refreshKeys(){
  }
  const keys=r.data.passkeys||[];
  keyAuthorized=true;
+ keyEl('keyGateStatus').textContent='기존 패스키 인증 완료. 새 패스키를 계속 추가할 수 있습니다.';
  keyEl('keyGate').hidden=true;
  keyEl('keyEnrollmentFields').disabled=false;
- keyEl('keyUnlock').disabled=false;
+ keyEl('keyUnlock').disabled=keyOperationBusy;
  const list=keyEl('keyListDetailed');
  list.replaceChildren();
  keyEl('keyAdd').disabled=keyOperationBusy;
@@ -126,44 +127,100 @@ async function cancelAdd(){
  }
  setKeyBusy(false);
 }
-async function addPasskey(){
- if(!window.PublicKeyCredential||!navigator.credentials?.create||!window.isSecureContext){
-  sayKeys('HTTPS에서 WebAuthn을 지원하는 브라우저가 필요합니다.');return;
+async function ensureEnrollmentSession(){
+ // Even after page reload, start button stays enabled; the server decides if session is valid.
+ let check=await keysApi('list');
+ if(check.status===200){
+  keyAuthorized=true;
+  return true;
  }
+ if(check.status!==401){
+  throw Error('로그인 서버 확인 HTTP '+check.status+' ('+(check.data.error||'unknown')+')');
+ }
+ sayKeys('새 패스키 등록 전 기존 패스키로 본인 확인합니다. 기기 인증 창에서 horse를 선택하세요.');
+ const login=window.t08StartLogin;
+ if(typeof login!=='function')throw Error('패스키 로그인 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+ const ok=await login();
+ if(!ok){
+  lockManagement();
+  sayKeys('기존 패스키 인증이 완료되지 않았습니다. 입력한 새 패스키 이름은 유지됩니다. 기존 horse 패스키로 로그인한 뒤 다시 등록하세요.');
+  return false;
+ }
+ check=await keysApi('list');
+ if(check.status!==200){
+  lockManagement();
+  throw Error('패스키 인증 후 세션 확인 실패 HTTP '+check.status+' ('+(check.data.error||'unknown')+')');
+ }
+ keyAuthorized=true;
+ return true;
+}
+async function addPasskey(){
+ if(keyOperationBusy)return;
  const name=keyEl('additionalKeyName').value.trim();
  const provider=keyEl('additionalKeyProvider').value;
- if(name.length<2||!provider){sayKeys('패스키의 이름과 실제 저장 위치를 선택하세요.');return;}
+ if(name.length<2||name.length>48){
+  sayKeys('새 패스키 이름을 2~48자로 작성하세요. 입력칸은 로그인 전에도 편집할 수 있습니다.');
+  keyEl('additionalKeyName').focus();
+  return;
+ }
+ if(!provider){
+  sayKeys('패스키를 실제로 저장할 위치를 선택하세요. 기존 구글 관리자와 별개라면 기기 자체/보안 키를 선택할 수 있습니다.');
+  keyEl('additionalKeyProvider').focus();
+  return;
+ }
+ if(!window.PublicKeyCredential||!navigator.credentials?.create||!window.isSecureContext){
+  sayKeys('HTTPS와 WebAuthn을 지원하는 브라우저가 필요합니다.');
+  return;
+ }
  setKeyBusy(true);
  try{
-  const issued=await keysApi('options');
-  if(issued.status!==200)throw Error(issued.data.error||'등록 질문 발급 실패');
+  const ready=await ensureEnrollmentSession();
+  if(!ready)return;
+  sayKeys('로그인 확인 완료. 새로운 패스키 발급 질문을 서버에서 요청 중입니다…');
+  let issued=await keysApi('options');
+  if(issued.status===401){
+   keyAuthorized=false;
+   lockManagement();
+   throw Error('로그인 세션이 만료됐습니다. 등록 버튼을 다시 누르면 기존 패스키 인증을 시작합니다.');
+  }
+  if(issued.status!==200)throw Error('등록 질문 발급 HTTP '+issued.status+' ('+(issued.data.error||'unknown')+')');
   pendingId=issued.data.challengeId;
+  keyEl('keyCancel').disabled=false;
   addEvidence('추가 등록 질문 발급 HTTP 200 · 지문 '+issued.data.challengeFingerprint+
    ' · 기존 패스키 제외 '+(issued.data.options.excludeCredentials?.length||0)+'개');
-  sayKeys('기기 패스키 등록 창에서 기존 것과 다른 패스키를 생성하세요. 다른 기기나 외장 보안 키도 사용할 수 있습니다.');
+  sayKeys('새 패스키 저장 창이 열립니다. 기존 horse와 다른 자격증명을 생성하세요. 취소하면 서버에 공개키가 저장되지 않습니다.');
   waiter=new AbortController();
   const credential=await navigator.credentials.create({
-   publicKey:optionsForCreate(issued.data.options),signal:waiter.signal});
-  if(!credential)throw new DOMException('등록 취소','NotAllowedError');
-  if(!pendingId)throw Error('registration_canceled');
-  const result=await keysApi('verify',{challengeId:pendingId,response:serializeCreated(credential),
-   name,storageProvider:provider});
+   publicKey:optionsForCreate(issued.data.options),signal:waiter.signal
+  });
+  if(!credential)throw new DOMException('기기 등록 취소','NotAllowedError');
+  if(!pendingId)throw new DOMException('사용자 취소','AbortError');
+  const result=await keysApi('verify',{
+   challengeId:pendingId,response:serializeCreated(credential),name,storageProvider:provider
+  });
   pendingId=null;
-  addEvidence('새 패스키 서버 검증 HTTP '+result.status+' / '+(result.data.error||'저장됨')+
-   ' / 개인키 [전송 안 함]');
-  if(result.status!==200||!result.data.passkeyStored)throw Error(result.data.error||'등록 실패');
-  sayKeys('추가 패스키 등록 성공: '+name+' · 전체 '+result.data.totalPasskeys+
-   '개. 기존 패스키도 그대로 유지됩니다.');
+  addEvidence('추가 패스키 등록 서버 검증 HTTP '+result.status+' / '+(result.data.error||'성공')+' / 개인키 미전송');
+  if(result.status!==200||!result.data.passkeyStored){
+   throw Error('공개키 저장 실패 HTTP '+result.status+' ('+(result.data.error||'unknown')+')');
+  }
+  sayKeys('추가 패스키 등록 성공: '+name+' · 현재 '+result.data.totalPasskeys+'개. 기존 패스키는 유지됩니다.');
   await refreshKeys();
  }catch(e){
   if(pendingId){
-   const id=pendingId;pendingId=null;
+   const id=pendingId;
+   pendingId=null;
    try{await keysApi('cancel',{challengeId:id});}catch{}
   }
-  sayKeys(['NotAllowedError','AbortError'].includes(e.name)||e.message==='registration_canceled'?
-   '추가 등록을 취소했습니다. 새 패스키는 서버에 저장하지 않았습니다.':
-   '추가 등록 실패: '+e.message+'. 같은 비밀번호 관리자에 동기화된 기존 자격증명은 별도 패스키로 취급하지 않습니다.');
- }finally{waiter=null;setKeyBusy(false);}
+  const cancelled=['NotAllowedError','AbortError'].includes(e.name);
+  if(cancelled){
+   sayKeys('새 패스키 만들기가 취소되거나 기기에서 거절됐습니다. 같은 관리자에 이미 등록된 패스키가 있으면 다른 저장 위치를 선택해 다시 시도하세요. 입력 내용은 유지됩니다.');
+  }else{
+   sayKeys('추가 등록 실패 ('+(e.name||'Error')+'): '+e.message+' · 입력 내용은 유지됩니다.');
+  }
+ }finally{
+  waiter=null;
+  setKeyBusy(false);
+ }
 }
 async function removePasskey(item,count){
  if(count<=1){sayKeys('마지막 패스키는 삭제할 수 없습니다.');return;}
@@ -217,22 +274,26 @@ async function probeDeleted(){
 }
 function initKeys(){
  keyEl('keyUnlock').addEventListener('click',async()=>{
+  if(keyOperationBusy)return;
   const start=window.t08StartLogin;
   if(typeof start!=='function'){
-   sayKeys('로그인 기능이 준비되지 않았습니다. 새로고침하고 다시 시도하세요.');return;
+   sayKeys('로그인 기능을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.');
+   return;
   }
   keyEl('keyUnlock').disabled=true;
-  keyEl('keyGateStatus').textContent='기기에서 패스키로 인증하는 중입니다…';
+  keyEl('keyGateStatus').textContent='기기의 패스키 창에서 기존 계정을 선택하세요…';
   try{
-    await start();
-    await refreshKeys();
-    if(keyAuthorized){
-      sayKeys('로그인 성공! 새 이름과 실제 저장 위치를 정하고 「패스키 추가 등록」을 누르세요.');
-      keyEl('additionalKeyName').focus();
-    }else{
-      sayKeys('로그인을 완료하지 못했습니다. 로그인 안내를 확인하고 다시 시도하세요.');
-    }
-  }catch(e){sayKeys('로그인 오류: '+e.message);}
+   // A bare "login and continue" button checks the session. The blue Add button
+   // additionally resumes a new credential registration after this same login.
+   const current=await keysApi('list');
+   const ok=current.status===200 || (current.status===401 && await start());
+   if(!ok){
+    sayKeys('기기 패스키 로그인을 완료하지 않았습니다. 기존 horse 패스키를 선택해 주세요.');
+    return;
+   }
+   const valid=await refreshKeys();
+   if(valid)sayKeys('로그인 완료. 새 패스키 이름과 저장 위치를 확인한 뒤 「패스키 추가 등록」을 누르세요.');
+  }catch(e){sayKeys('로그인 확인 오류: '+e.message);}
   finally{keyEl('keyUnlock').disabled=false;}
  });
  keyEl('keyRefresh').addEventListener('click',refreshKeys);
