@@ -164,8 +164,19 @@ async function addPasskey(){
   return;
  }
  if(!provider){
-  sayKeys('패스키를 실제로 저장할 위치를 선택하세요. 기존 구글 관리자와 별개라면 기기 자체/보안 키를 선택할 수 있습니다.');
+  sayKeys('패스키를 저장할 위치를 선택하세요.');
   keyEl('additionalKeyProvider').focus();
+  return;
+ }
+ if(provider==='google_other'){
+  const handoff=window.t08IssueProfileTicket;
+  if(typeof handoff!=='function'){
+   sayKeys('다른 Google 계정 등록 기능을 아직 불러오지 못했습니다. 새로고침 후 다시 시도하세요.');
+   return;
+  }
+  keyEl('profileNewName').value=name;
+  sayKeys('다른 Google 계정 B 등록: 기존 horse로 승인한 뒤 등록 링크를 만듭니다. 생성되면 아래 링크를 Chrome B 프로필에서 열어 새 패스키를 저장하세요.');
+  await handoff();
   return;
  }
  if(!window.PublicKeyCredential||!navigator.credentials?.create||!window.isSecureContext){
@@ -297,7 +308,9 @@ async function probeDeleted(){
 }
 function updateProviderHelp(){
  const mode=keyEl('additionalKeyProvider').value;
- const message=mode==='bitwarden'
+ const message=mode==='google_other'
+  ?'Google 계정 B 등록: 현재 계정 A 패스키 생성창을 열지 않고, 기존 horse로 승인 후 5분짜리 등록 링크를 이 카드 안에서 발급합니다. B에 로그인된 다른 Chrome 프로필에서 링크를 열면 그 프로필의 Google 비밀번호 관리자에 저장합니다. Gmail 계정만 바꿔서는 Chrome 저장소가 바뀌지 않습니다.'
+  :mode==='bitwarden'
   ?'USB·QR·Google 계정 추가 없이 새 패스키를 만드는 대안입니다. 먼저 Bitwarden Chrome 확장 프로그램을 설치·로그인하고 「패스키 저장/사용 요청」을 켜세요. 이 선택만으로 Bitwarden으로 자동 전환되지는 않으며 실제 Bitwarden 저장 창을 확인해야 합니다.'
   :mode==='phone'
   ?'휴대전화 연결은 브라우저에 hybrid 방식으로 요청만 할 수 있습니다. Windows에서 USB 보안 키 삽입 창이 나오면 해당 경로는 휴대전화 QR이 아닙니다. USB를 연결하지 말고 취소하세요. QR 지원 여부는 Windows/브라우저가 결정하며, 웹사이트에서 강제로 열 수 없습니다.'

@@ -103,3 +103,24 @@ test('Chrome profile B only gets registration from one-time fragment, no public 
  assert.ok(client.includes("profileAPI('issue',{name})"));
  assert.ok(!client.includes("profileAPI('remove'"));
 });
+
+
+test('the normal card 4 registration form directly offers another existing Google account',()=>{
+ const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const keys=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
+ const profile=fs.readFileSync(new URL('../client/profile.js',import.meta.url),'utf8');
+ assert.ok(page.includes('<option value="google_other" selected>'));
+ assert.ok(page.includes('다른 Google 계정(B)에 패스키 저장'));
+ const form=page.indexOf('id="additionalKeyProvider"');
+ const panel=page.indexOf('id="googleProfilePanel"');
+ const report=page.indexOf('등록·삭제 검증 기록');
+ assert.ok(form>=0&&panel>form&&report>panel);
+ assert.ok(keys.includes("if(provider==='google_other')"));
+ assert.ok(keys.includes("window.t08IssueProfileTicket"));
+ assert.ok(keys.includes("keyEl('profileNewName').value=name"));
+ assert.ok(profile.includes('window.t08IssueProfileTicket=issueLink'));
+ assert.ok(profile.includes("e('googleProfilePanel').scrollIntoView"));
+ assert.ok(keys.indexOf("if(provider==='google_other')")<keys.indexOf("navigator.credentials?.create"));
+ assert.ok(profile.includes("await getOwnerLogin()"));
+ assert.ok(profile.includes("const result=await profileAPI('issue',{name})"));
+});

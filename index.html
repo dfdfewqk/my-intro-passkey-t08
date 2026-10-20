@@ -97,7 +97,7 @@ html{scroll-behavior:smooth}
 <section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
 <span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
 <h2 id="manageKeysTitle">두 번째 패스키 추가 및 관리</h2>
-<p class="note"><strong>PIN 입력 필수 아님:</strong> 이 사이트는 추가 패스키 등록과 로그인을 위해 별도 PIN을 요구하지 않도록 설정했습니다. 다만 Google·Windows·Bitwarden 등 패스키 관리자가 자체 잠금 해제를 요구하면 사이트가 생략시킬 수 없습니다. 패스키는 여전히 기기에서 만들고 서버는 서명을 검증합니다.</p><p class="note">다른 Google 계정 B에 저장하려면 <a href="#googleProfilePanel"><strong>아래 「Chrome 프로필 B 등록」</strong></a>을 사용하세요. 이 일반 등록 버튼으로는 현재 Chrome 프로필의 Google 계정을 바꿀 수 없습니다.</p>
+<p class="note"><strong>PIN 입력 필수 아님:</strong> 이 사이트는 등록과 로그인에서 PIN을 필수로 요구하지 않습니다. 다만 Google·Windows 등 패스키 관리자가 자체 잠금 해제를 요구할 수 있습니다. 다른 Google 계정 B 등록은 바로 아래의 <strong>새 패스키 등록 폼</strong>에서 시작하세요.</p>
 <div class="keyGate" id="keyGate" role="region" aria-label="패스키 관리 로그인">
 <strong>선택 사항 · 기존 패스키 로그인</strong>
 <p id="keyGateStatus">로그인하지 않았어도 아래의 새 패스키 이름과 저장 위치를 미리 선택할 수 있습니다. <strong>패스키 추가 등록</strong>을 누르면 기존 패스키로 본인 확인한 뒤 새 등록을 진행합니다.</p>
@@ -113,8 +113,9 @@ html{scroll-behavior:smooth}
 <p class="note" id="keyZeroRule">패스키가 하나도 남지 않으면 로그인할 수 없으므로 마지막 1개 삭제는 서버에서 차단합니다.</p>
 <hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
 <h2 id="addSecondKeyTitle">새 패스키 등록 · 언제든 시작 가능</h2>
+<p class="note"><strong>이미 Google 계정이 2개 있다면:</strong> 아래 저장 위치에서 <strong>「다른 Google 계정(B)에 패스키 저장」</strong>을 선택한 뒤 기존 등록 버튼 하나만 누르세요. 별도 USB나 새 Google 계정은 필요 없습니다.</p>
 <p class="note">이름과 저장 위치는 로그인하지 않았어도 입력할 수 있습니다. 등록 버튼을 누르면 필요할 때 기존 horse로 인증하고 새 패스키를 생성합니다. 기존 패스키는 삭제되지 않습니다.</p>
-<p class="note">이번에는 사이트에서 <strong>새 패스키마다 독립된 등록 ID</strong>를 발급해. 기존 Google 계정을 바꾸거나 USB·새 PIN을 준비할 필요는 없어. 이미 저장된 horse는 서버에서 그대로 보존하고, 새로 생성된 패스키는 같은 사이트 계정에 추가돼. 단, Google이 자체적으로 요구하는 잠금 해제는 사이트에서 제거할 수 없어.</p>
+<p class="note">사이트 계정 owner는 하나이며 <strong>horse와 horse2를 서로 다른 패스키</strong>로 관리합니다. Google 계정 B에 저장하려면 Chrome에서도 B 프로필을 사용해야 합니다. 현재 Google 관리자가 자체 PIN을 요구하는 것은 사이트에서 강제로 제거할 수 없습니다.</p>
 <fieldset class="gatedFields" id="keyEnrollmentFields">
 <div class="registerGrid">
 <label for="additionalKeyName"><strong>새 패스키 이름</strong>
@@ -125,22 +126,19 @@ html{scroll-behavior:smooth}
 <option value="bitwarden">Bitwarden 확장 프로그램 · 선택 사항</option>
 <option value="phone">다른 휴대전화 연결 시도 · QR 제공은 브라우저에 따라 다름</option>
 <option value="device">이 PC 인증 장치 · Windows Hello 우선</option>
-<option value="google" selected>현재 Chrome의 패스키 관리자 · 새 패스키 만들기</option>
+<option value="google_other" selected>다른 Google 계정(B)에 패스키 저장 · 등록 링크 발급</option>
+<option value="google">현재 Chrome의 Google 계정(A)에 바로 저장</option>
 <option value="security_key">별도 물리 보안 키 · USB/NFC 장치 필요</option>
 </select></label>
 </div>
-<p id="keyProviderHelp" class="note" aria-live="polite">기본 선택으로 바로 horse2를 만들어 봐. 새 패스키는 기존 horse와 다른 등록 ID로 발급하지만, Google 관리자가 자체 PIN을 요구할 수는 있어. 기존 horse는 지우지 마.</p>
+<p id="keyProviderHelp" class="note" aria-live="polite">기존 Google 계정이 아닌 다른 계정 B에 저장하려면 이 옵션을 선택한 채 「패스키 추가 등록」을 누르세요. 기존 horse로 소유자 인증한 뒤 5분 유효한 등록 링크를 발급합니다. 링크는 B 계정의 별도 Chrome 프로필에서 열어야 합니다. 웹사이트가 Google 계정 선택기를 직접 열 수는 없습니다.</p>
 <div class="actions">
 <button class="button" type="button" id="keyAdd">패스키 추가 등록</button>
 <button class="button secondary" type="button" id="keyCancel" disabled>등록 취소</button>
 </div>
 </fieldset>
 <div class="status" id="keyManagementMessage" role="status" aria-live="polite">패스키 이름과 저장 위치를 선택한 뒤 「패스키 추가 등록」을 누르세요. 기존 패스키 인증이 필요하면 등록 과정에서 안내합니다.</div>
-<h2 style="margin-top:24px">등록·삭제 검증 기록</h2>
-<pre id="keyManagementEvidence" class="status evidence">기록 대기 중…</pre>
-<p class="note"><strong>패스키 0개인 경우:</strong> 서버 공개키로 서명을 검증할 방법이 없으므로 로그인할 수 없습니다. 마지막 패스키 삭제는 금지되며, 모든 기기에서 패스키를 잃었다면 별도의 관리자 본인 확인이 필요합니다. 공개 자가 초기화 버튼은 제공하지 않습니다.</p>
-</section>
-<section class="panel" id="googleProfilePanel" style="margin-top:22px" aria-labelledby="googleProfileTitle">
+<section class="panel" id="googleProfilePanel" style="margin-top:22px;border-top:2px solid #cad7e5;padding-top:16px" aria-labelledby="googleProfileTitle">
 <span class="tag">카드 4 · 다른 Google 계정으로 등록</span>
 <h2 id="googleProfileTitle">Chrome 프로필 B에 두 번째 패스키 저장</h2>
 <p class="note">Google 이메일을 선택하는 버튼은 WebAuthn에 없습니다. 대신 <strong>Chrome 프로필 A(기존 horse)</strong>에서 5분짜리 등록 링크를 발급하고, 그 링크를 <strong>Google 계정 B로 로그인한 별도 Chrome 프로필</strong>에서 열어 새 패스키를 생성할 수 있습니다. 사이트 계정은 여전히 <strong>owner 1개</strong>입니다.</p>
@@ -167,6 +165,10 @@ html{scroll-behavior:smooth}
 <div class="status" role="status" aria-live="polite" id="profileMessage">먼저 Chrome 프로필 A에서 기존 horse 패스키로 로그인하고 등록 링크를 발급하세요.</div>
 <pre class="status evidence" id="profileEvidence">증거 기록 대기 · 링크 원문·세션 값은 표시하지 않음</pre>
 <p class="note"><strong>주의:</strong> Chrome 프로필 B에 Google 계정 B가 실제로 선택되어 있어야 합니다. Gmail 탭에서만 계정을 변경한 것으로는 비밀번호 관리자 저장소가 바뀌지 않을 수 있습니다. 기존 horse는 삭제하지 마세요.</p>
+</section>
+<h2 style="margin-top:24px">등록·삭제 검증 기록</h2>
+<pre id="keyManagementEvidence" class="status evidence">기록 대기 중…</pre>
+<p class="note"><strong>패스키 0개인 경우:</strong> 서버 공개키로 서명을 검증할 방법이 없으므로 로그인할 수 없습니다. 마지막 패스키 삭제는 금지되며, 모든 기기에서 패스키를 잃었다면 별도의 관리자 본인 확인이 필요합니다. 공개 자가 초기화 버튼은 제공하지 않습니다.</p>
 </section>
 <section class="panel" id="registerPanel" hidden style="margin-top:22px" aria-labelledby="registrationTitle">
 <span class="tag">카드 2 · 패스키 등록</span>

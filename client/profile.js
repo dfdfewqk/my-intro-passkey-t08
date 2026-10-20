@@ -62,6 +62,7 @@ async function issueLink(){
   e('profileCopy').disabled=false;
   profileMsg('5분짜리 일회성 링크가 생성됐습니다. 오른쪽 위 Chrome 프로필 버튼에서 Google 계정 B 프로필을 열고 링크를 붙여넣으세요. A 프로필에서 등록 버튼을 누르면 다시 계정 A 저장소로 연결됩니다.');
   profileAudit('발급 완료 · 이름: '+name+' · 토큰: [가림] · 만료 5분 · 기존 패스키 변경 없음');
+  e('googleProfilePanel').scrollIntoView({behavior:'smooth',block:'start'});
  }catch(err){profileMsg('등록 링크 발급 실패: '+err.message);}
  finally{e('profileIssue').disabled=false;}
 }
@@ -152,6 +153,9 @@ async function registerSecondGoogle(){
   if(profileTicket)e('profileEnrollBtn').disabled=false;
  }finally{profileAbort=null;}
 }
+// Public registration form can start this authorized enrollment flow without
+// exposing a fake Google account selector or calling WebAuthn in profile A.
+window.t08IssueProfileTicket=issueLink;
 async function initializeProfile(){
  e('profileIssue').addEventListener('click',issueLink);
  e('profileCopy').addEventListener('click',copyLink);
