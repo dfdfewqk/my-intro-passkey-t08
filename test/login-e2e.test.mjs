@@ -74,7 +74,7 @@ test('horse2 signed login updates source credential and actually renders three p
  assert.equal(h.info.asks,1);
  assert.ok(h.info.privateReads>=1);
  assert.match(h.el('loginState').textContent,/horse2/);
- assert.match(h.el('loginMessage').textContent,/로그인 성공: horse2/);
+ assert.match(h.el('loginMessage').textContent,/로그인 성공: owner · horse2/);
  assert.match(h.el('loginMessage').textContent,/비공개 자료 3건/);
  assert.equal(h.el('vault').children.length,3);
  assert.equal(h.el('logoutPasskey').dataset.logged,'yes');
@@ -86,7 +86,7 @@ test('signed login remains visibly successful if private API is down',async()=>{
  const success=await h.el('loginPasskey').events.click();
  assert.equal(success,true);
  assert.match(h.el('loginState').textContent,/horse2/);
- assert.match(h.el('loginMessage').textContent,/로그인 성공: horse2/);
+ assert.match(h.el('loginMessage').textContent,/로그인 성공: owner · horse2/);
  assert.match(h.el('loginMessage').textContent,/비공개 자료 조회 실패/);
 });
 test('authentication service outage is not mislabeled as logged out',async()=>{
@@ -149,7 +149,7 @@ test('header login button uses actual WebAuthn and displays owner and horse2',as
  assert.equal(h.info.logins,1);
  assert.equal(h.el('sessionRibbon').dataset.state,'authenticated');
  assert.match(h.el('sessionRibbonTitle').textContent,/owner · horse2/);
- assert.match(h.el('sessionRibbonDetail').textContent,/동일한 개인 자료실 접근 권한/);
+ assert.match(h.el('sessionRibbonDetail').textContent,/현재 owner 자료만 열람 가능/);
  assert.equal(h.el('sessionLogin').hidden,true);
  assert.equal(h.el('sessionLogout').hidden,false);
  assert.equal(h.el('sessionLogout').disabled,false);

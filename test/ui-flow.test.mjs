@@ -125,7 +125,7 @@ test('Anonymous user can type details and start Add, which authenticates and reg
  assert.equal(env.stats.created,1);
  assert.equal(env.el('keyAdd').disabled,false);
  assert.equal(env.el('keyEnrollmentFields').disabled,false);
- assert.equal(env.el('keyCountDetailed').textContent,'등록된 패스키: 2개');
+ assert.equal(env.el('keyCountDetailed').textContent,'현재 owner 계정의 패스키: 2개');
 });
 test('Canceling WebAuthn login preserves name and does not start credential creation',async()=>{
  const env=simulatedClient({loginSucceeds:false});
