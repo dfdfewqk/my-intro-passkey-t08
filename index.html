@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>내 소개 · 개인 자료실 | 과제 8</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#18243a;background:#f3f6fb}*{box-sizing:border-box}
+body{margin:0}.wrap{max-width:1050px;margin:auto;padding:26px 18px 56px}header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:24px}
+.brand{font-weight:800;font-size:1.2rem}.pill{border-radius:99px;padding:7px 12px;background:#eaf0ff;color:#244c8b;font-weight:650;font-size:.85rem}
+a{color:#1253b0}.lead{font-size:1.02rem;line-height:1.65;color:#526078;margin-top:8px}
+.grid{display:grid;grid-template-columns:1.65fr 1fr;gap:22px}.panel{background:#fff;border:1px solid #dce5ef;border-radius:18px;padding:20px;box-shadow:0 7px 25px #1f3c650d}
+h1{font-size:1.85rem;margin:0}h2{font-size:1.2rem;margin:0 0 12px}p{line-height:1.6}.tag{display:inline-block;font-size:.78rem;background:#edf8f2;color:#137347;border-radius:100px;padding:5px 10px;margin-bottom:12px}
+.private .tag{background:#fff2e8;color:#9a4a05}.frame{height:580px;border:1px solid #dae2eb;border-radius:10px;width:100%;background:white}
+.empty{background:#f7f9fc;border:1px dashed #adbcd0;border-radius:12px;padding:18px;min-height:180px;display:flex;align-items:center;justify-content:center;text-align:center}
+.lock{font-size:2.2rem;margin:0}.empty p{margin:6px 0;color:#647287}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:11px 15px;font-weight:700;background:#2356b9;color:white;cursor:pointer}
+.button:focus-visible{outline:3px solid #88b2fd;outline-offset:2px}.button:disabled{opacity:.55;cursor:not-allowed}
+.secondary{background:#ecf1fa;color:#1c3969}.note{font-size:.9rem;color:#69788b}.status{background:#edf2f8;padding:12px;border-radius:10px;font-size:.9rem;min-height:46px;overflow-wrap:anywhere}
+footer{font-size:.84rem;color:#728095;margin-top:20px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.frame{height:470px}h1{font-size:1.5rem}}
+</style>
+</head>
+<body><div class="wrap">
+<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 1</span></header>
+<h1>공개 소개는 그대로, 내 기록은 따로</h1>
+<p class="lead">왼쪽 소개 페이지는 누구나 볼 수 있습니다. 오른쪽 개인 자료실은 서버에서 접근을 차단하며, 비공개 문서 본문은 인증하기 전에는 내려오지 않습니다.</p>
+<main class="grid">
+<section class="panel" aria-labelledby="public-title">
+<span class="tag">공개 영역 · 누구나 열람</span>
+<h2 id="public-title">기존 소개 페이지</h2>
+<p class="note">1번 과제에서 만든 원본 소개 화면을 변경하지 않고 표시합니다.</p>
+<iframe class="frame" src="https://dfdfewqk.github.io/my-intro-page/" title="기존 공개 자기소개 페이지" loading="lazy" referrerpolicy="no-referrer"></iframe>
+<p><a href="https://dfdfewqk.github.io/my-intro-page/" target="_blank" rel="noopener noreferrer">원본 소개 페이지 새 창으로 열기 ↗</a></p>
+</section>
+<section class="panel private" aria-labelledby="private-title">
+<span class="tag">비공개 영역 · 접근 제한</span>
+<h2 id="private-title">나만의 자료실</h2>
+<p class="note">연습용 기록 3건을 별도 서버 설정에 보관합니다. 공개 HTML에는 항목의 본문이 없습니다.</p>
+<div class="empty" id="vault">
+<div><p class="lock" aria-hidden="true">🔒</p><strong>자료실이 잠겨 있습니다</strong>
+<p>패스키로 본인 확인을 마치기 전에는 자료를 가져올 수 없습니다.</p>
+</div></div>
+<p class="note">카드 1에서는 비인증 요청을 차단합니다. 패스키 등록·로그인은 다음 카드에서 연결합니다.</p>
+<p><button class="button" type="button" disabled aria-disabled="true">패스키로 열기 (다음 단계)</button></p>
+<hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
+<h2>서버 접근 차단 확인</h2>
+<p class="note">로그인하지 않은 상태에서 보호 API를 호출합니다. 통과 응답은 HTTP 401입니다.</p>
+<p><button class="button secondary" type="button" id="check">비공개 API 응답 확인</button></p>
+<div id="status" class="status" role="status" aria-live="polite">아직 확인하지 않았습니다.</div>
+</section>
+</main>
+<footer>이 화면과 소스에는 실제 연락처·신분증 번호·개인키·비공개 문서 본문을 넣지 않았습니다.</footer>
+</div>
+<script>
+document.getElementById('check').addEventListener('click',async()=>{
+ const button=document.getElementById('check'), status=document.getElementById('status');
+ button.disabled=true;status.textContent='서버 응답 확인 중…';
+ try{
+  const response=await fetch('/api/private',{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+  status.textContent=response.status===401
+   ? 'HTTP 401 · 접근 거절 확인: 인증되지 않은 요청에 비공개 본문이 전달되지 않았습니다.'
+   : 'HTTP '+response.status+' · 예상한 응답이 아닙니다. 배포 환경과 서버 로그를 확인하세요.';
+ }catch(err){status.textContent='요청 실패 · 서버 주소 또는 네트워크 연결을 확인하세요.';}
+ finally{button.disabled=false;}
+});
+</script>
+</body></html>
