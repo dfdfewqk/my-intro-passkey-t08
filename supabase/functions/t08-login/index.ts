@@ -80,7 +80,7 @@ Deno.serve(async req=>{
   if(error)return send({error:'storage_unavailable'},503);
   if(!keys?.length)return send({error:'no_registered_passkey'},409);
   const options=await generateAuthenticationOptions({
-   rpID:RP_ID, userVerification:'required', timeout:120000,
+   rpID:RP_ID, userVerification:'discouraged', timeout:120000,
    allowCredentials:keys.map(k=>({
     id:k.credential_id,
     transports:Array.isArray(k.transports)?k.transports:undefined
@@ -130,9 +130,11 @@ Deno.serve(async req=>{
     expectedChallenge:issued.challenge, expectedOrigin:ORIGIN, expectedRPID:RP_ID,
     credential:{id:keyRow.credential_id,publicKey:fromB64(keyRow.public_key_base64url),
      counter:Number(keyRow.counter),transports:keyRow.transports||[]},
-    requireUserVerification:true
+    requireUserVerification:false
    });
-   if(!result.verified||!result.authenticationInfo?.userVerified)throw Error('not_verified');
+   // A valid device-held private-key signature and user presence are still mandatory.
+   // Do not require the optional PIN/biometric user-verified (UV) authenticator flag.
+   if(!result.verified||!result.authenticationInfo)throw Error('not_verified');
    updatedCounter=result.authenticationInfo.newCounter;
   }catch{
    await audit('rejected',issued.challenge);

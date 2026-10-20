@@ -82,7 +82,7 @@ test('server only finalizes after verified WebAuthn signature and atomically con
  assert.ok(source.includes('verifyRegistrationResponse({'));
  assert.ok(source.includes('expectedChallenge:row.challenge'));
  assert.ok(source.includes('expectedOrigin:ORIGIN,expectedRPID:RP'));
- assert.ok(source.includes('requireUserPresence:true,requireUserVerification:true'));
+ assert.ok(source.includes('requireUserPresence:true,requireUserVerification:false'));
  assert.ok(source.includes("'t08_finalize_profile_enrollment'"));
  assert.ok(source.includes(".delete().eq('ticket_hash',ticket.token_hash).eq('id',input.challengeId)"));
  assert.ok(source.includes('excludeCredentials:keys.map'));

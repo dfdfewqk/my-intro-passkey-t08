@@ -91,7 +91,7 @@ Deno.serve(async(req)=>{
    const options=await generateRegistrationOptions({
      rpName:'내 소개 · 개인 자료실',rpID:RP,userName:'owner',userDisplayName:'Owner',
      userID:new TextEncoder().encode('t08-owner-v1'),attestationType:'none',
-     authenticatorSelection:{residentKey:'required',userVerification:'required'},
+     authenticatorSelection:{residentKey:'preferred',userVerification:'discouraged'},
      supportedAlgorithmIDs:[-7,-257],timeout:120000,
      excludeCredentials:keys.map(k=>({id:k.credential_id,
        transports:Array.isArray(k.transports)?k.transports:undefined}))
@@ -120,7 +120,7 @@ Deno.serve(async(req)=>{
      verified=await verifyRegistrationResponse({
        response:input.response as Parameters<typeof verifyRegistrationResponse>[0]['response'],
        expectedChallenge:row.challenge,expectedOrigin:ORIGIN,expectedRPID:RP,
-       requireUserPresence:true,requireUserVerification:true
+       requireUserPresence:true,requireUserVerification:false
      });
      if(!verified.verified||!verified.registrationInfo)throw Error('invalid');
    }catch{return send({error:'invalid_registration_response',passkeyStored:false},401);}

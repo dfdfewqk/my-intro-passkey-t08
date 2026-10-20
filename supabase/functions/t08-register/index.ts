@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
         userName:'owner',userDisplayName:'Owner',
         userID:new TextEncoder().encode('t08-owner-v1'),
         attestationType:'none',
-        authenticatorSelection:{residentKey:'required',userVerification:'required'},
+        authenticatorSelection:{residentKey:'preferred',userVerification:'discouraged'},
         timeout:120000,supportedAlgorithmIDs:[-7,-257],
       });
       const expiresAt=new Date(Date.now()+3*60*1000).toISOString();
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         response:response as Parameters<typeof verifyRegistrationResponse>[0]['response'],
         expectedChallenge:challenge.challenge,
         expectedOrigin:origin,expectedRPID:rpID,
-        requireUserPresence:true,requireUserVerification:true,
+        requireUserPresence:true,requireUserVerification:false,
       });
       if(!verified.verified||!verified.registrationInfo)
         throw new Error('not_verified');
