@@ -93,3 +93,7 @@ npm test
 ## 추가 패스키 등록 추천 경로
 
 반복된 Google 기존 패스키 재선택·Windows USB 삽입 창 문제를 피하기 위해 **Bitwarden 브라우저 확장 프로그램** 저장 위치를 지원합니다. 구글/USB 없이 별도 패스키 자격증명을 생성할 수 있는 경로이며, Bitwarden 계정은 네이버 이메일로 만들 수 있습니다. 단, 확장 프로그램의 WebAuthn 요청 수락과 실제 패스키 생성은 사용자가 수행해야 합니다. [등록 화면](https://my-intro-t08.vercel.app/#manageKeysPanel) / [공식 저장 방법](https://bitwarden.com/help/storing-passkeys/). 기존 horse와 서버 인증 정책은 그대로 보존합니다. 자동 테스트 **40/40 통과**.
+
+## 다른 Google 계정 B에 horse2 저장
+
+[Chrome 프로필 B 등록 링크 발급](https://my-intro-t08.vercel.app/#googleProfilePanel)에서 A의 horse로 로그인 후 5분짜리 1회용 링크를 발급해 B의 별도 Chrome 프로필에서 새 패스키를 등록할 수 있습니다. Google 계정 자체를 웹사이트가 선택하지는 못합니다. 기존 사이트 owner 계정은 하나이며 기존 horse 유지. 48/48 자동 테스트 통과, 실제 Google B 등록은 아직 미검증. [CARD4.md](CARD4.md) 참조.

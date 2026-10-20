@@ -141,3 +141,20 @@
 - 실제 운영 배포 HTML 200, Bitwarden 메뉴 기본 선택 및 UI 안내 확인, 스크립트 200, 비인증 등록 요청 401로 차단 확인.
 - **실제 두 번째 패스키 생성·서버 등록은 여전히 사용자 브라우저에서 완료해야 하며 성공했다고 간주하지 않습니다.**
 
+
+## 2026-10-20 — Google 계정 A/B Chrome 프로필 분리 등록
+
+**목표:** 하나의 사이트 owner 계정에 Google 계정 A의 horse와 별도 Chrome 프로필 B의 horse2를 등록한다. Gmail 탭의 계정 전환은 Chrome 프로필 전환과 다르며, 웹사이트는 Google Password Manager의 계정을 직접 선택할 수 없다.
+
+**구현:** Chrome A의 검증된 패스키 세션에서 5분 유효한 256비트 등록 링크를 생성한다. DB에는 토큰의 SHA-256 해시만 저장한다. Chrome B는 링크로 추가 패스키 등록만 할 수 있으며, 사이트의 세션 발급·비공개 메모 읽기·기존 패스키 삭제는 할 수 없다.
+
+**보안:** 새로운 토큰 발급 시 같은 세션의 미사용 이전 토큰 폐기. A의 로그인 세션이 종료·만료되면 해당 링크도 사용 불가. B에서 WebAuthn challenge를 2분 저장했다가 일회성으로 소비하며, WebAuthn 서명·origin·RP ID·사용자 확인을 검증한다. DB 트랜잭션에서 새 공개키를 저장하면서 링크를 사용 완료 처리한다. 기존 horse와 중복 방지 제외 목록 유지.
+
+**단계:** ① Chrome A 프로필의 https://my-intro-t08.vercel.app/#googleProfilePanel 에서 horse로 로그인하여 계정 B용 등록 링크 발급 ② 발급 링크 복사(타인 공유 금지) ③ Chrome 우측 위 프로필 메뉴에서 Google 계정 B와 연결된 **다른 Chrome 프로필** 열기 ④ 5분 안에 B 주소창에 링크 붙여넣기 ⑤ B에서 새 패스키 저장 ⑥ A 프로필의 패스키 목록에서 horse/horse2 두 개 확인. 등록 과정 동안 A에서 로그아웃하지 않는다.
+
+**개발:** Supabase t08_profile_enroll_tickets / t08_profile_enroll_challenges 및 t08_finalize_profile_enrollment 함수, Edge t08-profile, Vercel api/profile.js, 브라우저 client/profile.js 추가. 링크는 URL fragment로 전달하고 브라우저 B에서 읽자마자 주소창에서 제거한다.
+
+**검증:** npm test 48/48 통과, 구문 검사 통과, 배포 페이지/새 JS HTTP 200, 미인증 링크 발급 HTTP 401, 없는 링크 403, 잘못된 출처 403, 비공개 데이터 미인증 401 확인. 기존 horse 한 개 보존. 실제 Google 계정 B 저장 성공은 사용자 브라우저에서 확인 전.
+
+Google Chrome 공식 프로필 안내: https://support.google.com/chrome/answer/2364824
+Google Password Manager 도움말: https://support.google.com/chrome/answer/13168025
