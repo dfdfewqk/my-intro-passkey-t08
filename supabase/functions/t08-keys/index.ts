@@ -55,15 +55,16 @@ Deno.serve(async(req)=>{
   if(error)return json({error:'storage_unavailable'},503);
   if(!keys?.length)return json({error:'account_has_no_passkeys'},409);
   if(keys.length>=10)return json({error:'too_many_passkeys'},409);
-  const mode=['google','device','security_key'].includes(String(input.storageProvider))
+  const mode=['google','device','security_key','phone'].includes(String(input.storageProvider))
     ? String(input.storageProvider):'';
   if(!mode)return json({error:'storage_mode_required'},400);
   // 'google' lets Chrome display its regular chooser (site cannot select a Google account).
   // Local Windows Hello and roaming security-key modes are genuine WebAuthn
   // authenticator criteria, not just labels in the site's UI.
   const attachment: 'platform'|'cross-platform'|undefined =
-    mode==='security_key'?'cross-platform':mode==='device'?'platform':undefined;
-  const recommendedHints=mode==='security_key'?['security-key']:
+    mode==='security_key'||mode==='phone'?'cross-platform':mode==='device'?'platform':undefined;
+  const recommendedHints=mode==='phone'?['hybrid']:
+    mode==='security_key'?['security-key']:
     mode==='device'?['client-device']:[];
   const optionsBase=await generateRegistrationOptions({
    rpName:'내 소개 · 개인 자료실',rpID:RP,userName:'owner',userDisplayName:'Owner',
@@ -75,7 +76,8 @@ Deno.serve(async(req)=>{
    excludeCredentials:keys.map(k=>({id:k.credential_id,
     transports:Array.isArray(k.transports)?k.transports:undefined}))
   });
-  // Hints are UI preferences, not an enforceable choice of Google account or USB key.
+  // Hints are recommendations and may be ignored by Chrome. Hybrid favors a
+  // nearby phone (e.g., QR cross-device flow) but is not a vendor guarantee.
   // Always keep excludeCredentials to prevent adding the same authenticator again.
   const options={...optionsBase,hints:recommendedHints};
   const {data:issued,error:saveError}=await db.from('t08_add_challenges')
@@ -106,7 +108,7 @@ Deno.serve(async(req)=>{
  if(action==='verify'){
   const name=typeof input.name==='string'?input.name.trim():'';
   if(name.length<2||name.length>48)return json({error:'invalid_display_name'},400);
-  const storageProvider=['google','device','security_key','unknown'].includes(String(input.storageProvider))
+  const storageProvider=['google','device','security_key','phone','unknown'].includes(String(input.storageProvider))
    ?String(input.storageProvider):'unknown';
   const {data:issued,error}=await db.from('t08_add_challenges')
    .delete().eq('id',challengeId).eq('session_hash',sessionHash)
