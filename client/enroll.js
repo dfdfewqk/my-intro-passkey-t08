@@ -164,10 +164,17 @@ function init(){
   const details=el('card2Details');
   if(details)details.open=s.registeredCount===0;
   if(s.registeredCount>0){
-    say('첫 패스키 등록 완료. 두 번째 패스키는 위의 카드 4에서 기존 패스키로 로그인한 뒤 등록하세요.');
-    // A consumed setup invitation cannot authorize additional enrollment.
+    // First enrollment was completed: hide the exhausted bootstrap screen entirely.
+    invitation='';
+    sessionStorage.removeItem('t08_owner_invitation');
+    el('registerPanel').hidden=true;
+    say('기존 패스키가 등록되어 있습니다. 추가 등록은 카드 4에서 로그인 후 진행하세요.');
     el('registerPasskey').disabled=true;
     el('compareChallenges').disabled=true;
+  }else if(invitation){
+    // A valid invitation can open the first-key setup only when no credentials exist.
+    el('registerPanel').hidden=false;
+    setBusy(false);
   }
 })
   .catch(()=>{el('passkeyCount').textContent='등록 서버 상태를 확인할 수 없습니다.';});
