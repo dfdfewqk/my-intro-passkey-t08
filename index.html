@@ -28,10 +28,15 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 .evidence{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 ui-monospace,Consolas,monospace}
 @media(max-width:760px){.registerGrid,.proofGrid{grid-template-columns:1fr}}
 
+
+.keyItem{padding:14px 12px;margin:12px 0;border:1px solid #dae4f0;border-radius:12px;background:#fbfcff}
+.keyItemHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.keyItem p{margin:7px 0 0}
+
 </style>
 </head>
 <body><div class="wrap">
-<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 3</span></header>
+<header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 4</span></header>
 <h1>공개 소개는 그대로, 내 기록은 따로</h1>
 <p class="lead">왼쪽 소개 페이지는 누구나 볼 수 있습니다. 오른쪽 개인 자료실은 서버에서 접근을 차단하며, 비공개 문서 본문은 인증하기 전에는 내려오지 않습니다.</p>
 <main class="grid">
@@ -114,7 +119,40 @@ footer{font-size:.84rem;color:#728095;margin-top:20px}
 <pre class="status evidence" id="publicKeyResult">패스키 등록 후 표시됩니다.</pre>
 <p class="note">카드 2 등록 기능은 보존했습니다. 최초 등록 초대는 사용 완료되었으므로 기존 패스키는 로그인 버튼에서 사용합니다.</p>
 </section>
-
+<section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
+<span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
+<h2 id="manageKeysTitle">내 패스키 목록 및 백업</h2>
+<p class="note">이미 등록한 <strong>horse</strong> 패스키는 그대로 유지합니다. 로그인한 뒤 두 번째 패스키를 등록하고 이름과 날짜를 확인할 수 있습니다.</p>
+<p id="keyCountDetailed" class="note">패스키 목록 확인 중…</p>
+<div class="actions">
+<button class="button secondary" type="button" id="keyRefresh">패스키 목록 새로고침</button>
+<button class="button secondary" type="button" id="keyProbeDeleted">삭제된 패스키 로그인 거절 확인</button>
+</div>
+<div id="keyListDetailed">로그인한 뒤 목록을 조회할 수 있습니다.</div>
+<p class="note" id="keyZeroRule">패스키가 하나도 남지 않으면 로그인할 수 없으므로 마지막 1개 삭제는 서버에서 차단합니다.</p>
+<hr style="border:0;border-top:1px solid #e0e7f0;margin:24px 0">
+<h2>두 번째 패스키 등록하기</h2>
+<p class="note">기존 패스키로 로그인한 상태에서만 등록할 수 있습니다. 같은 구글 비밀번호 관리자에서 기존 패스키가 동기화되어 보이는 것은 두 개로 세지 않습니다. 가능하면 다른 기기나 별도 보안 키에 저장하세요.</p>
+<div class="registerGrid">
+<label for="additionalKeyName"><strong>새 패스키 이름</strong>
+<input id="additionalKeyName" type="text" maxlength="48" placeholder="예: 보조 노트북" value="두 번째 패스키"></label>
+<label for="additionalKeyProvider"><strong>실제 저장 위치</strong>
+<select id="additionalKeyProvider">
+<option value="">저장 위치 선택</option>
+<option value="google">구글 비밀번호 관리자</option>
+<option value="device">기기 자체 / Windows Hello</option>
+<option value="security_key">외장 보안 키</option>
+</select></label>
+</div>
+<div class="actions">
+<button class="button" type="button" id="keyAdd" disabled>패스키 추가 등록</button>
+<button class="button secondary" type="button" id="keyCancel" disabled>등록 취소</button>
+</div>
+<div class="status" id="keyManagementMessage" role="status" aria-live="polite">먼저 기존 패스키로 로그인하세요.</div>
+<h2 style="margin-top:24px">등록·삭제 검증 기록</h2>
+<pre id="keyManagementEvidence" class="status evidence">기록 대기 중…</pre>
+<p class="note"><strong>패스키 0개인 경우:</strong> 서버 공개키로 서명을 검증할 방법이 없으므로 로그인할 수 없습니다. 마지막 패스키 삭제는 금지되며, 모든 기기에서 패스키를 잃었다면 별도의 관리자 본인 확인이 필요합니다. 공개 자가 초기화 버튼은 제공하지 않습니다.</p>
+</section>
 <footer>이 화면과 소스에는 실제 연락처·신분증 번호·개인키·비공개 문서 본문을 넣지 않았습니다.</footer>
 </div>
 <script>
@@ -132,4 +170,5 @@ document.getElementById('check').addEventListener('click',async()=>{
 </script>
 <script type="module" src="/client/enroll.js"></script>
 <script type="module" src="/client/login.js"></script>
+<script type="module" src="/client/keys.js"></script>
 </body></html>
