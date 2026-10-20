@@ -65,3 +65,40 @@ test('no password input fields exist in the static HTML',async()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.ok(!/<input\s[^>]*type=["']password/i.test(html));
 });
+
+test('registration options forwards the requested authenticator mode',async()=>{
+ const original=globalThis.fetch;let captured=null;
+ globalThis.fetch=async (_url,opts)=>{
+   captured=JSON.parse(opts.body);
+   return {status:200,json:async()=>({challengeId:'test',options:{hints:['security-key']}})};
+ };
+ try{
+   const {data,r}=capture();
+   await handler(req('options',{payload:{storageProvider:'security_key',session:'malicious-browser-token'}}),r);
+   assert.equal(data.status,200);
+   assert.equal(captured.action,'options');
+   assert.equal(captured.storageProvider,'security_key');
+   assert.equal(captured.session,'b'.repeat(64));
+   assert.notEqual(captured.session,'malicious-browser-token');
+ }finally{globalThis.fetch=original;}
+});
+test('server requests physical security key and Windows platform with WebAuthn options, retaining duplicate protection',async()=>{
+ const fs=await import('node:fs');
+ const source=fs.readFileSync(new URL('../supabase/functions/t08-keys/index.ts',import.meta.url),'utf8');
+ assert.ok(source.includes("'cross-platform'"));
+ assert.ok(source.includes("'platform'"));
+ assert.ok(source.includes("'security-key'"));
+ assert.ok(source.includes("'client-device'"));
+ assert.ok(source.includes("authenticatorAttachment:attachment"));
+ assert.ok(source.includes('excludeCredentials:keys.map'));
+ assert.ok(source.includes('requested_mode:mode'));
+ assert.ok(source.includes("!==issued.requested_mode"));
+});
+test('client reports browser-selected authenticator and explains Google duplicate error',async()=>{
+ const fs=await import('node:fs');
+ const source=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
+ assert.ok(source.includes("keysApi('options',{storageProvider:provider})"));
+ assert.ok(source.includes("credential.authenticatorAttachment"));
+ assert.ok(source.includes("e.name==='InvalidStateError'"));
+ assert.ok(source.includes('기존 자격증명 중복'));
+});
