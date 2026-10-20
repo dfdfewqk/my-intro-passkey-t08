@@ -1,19 +1,22 @@
-/**
- * Task 08, card 1: deny by default.
- *
- * Future cards will add a server-side, verified WebAuthn session check BEFORE
- * reading process.env.T08_PRIVATE_NOTES_JSON. Do not authorize by cookie presence,
- * query string flags, or client-side state.
- */
-export default function handler(req, res) {
-  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.setHeader('Allow', 'GET, HEAD');
-    return res.status(405).json({ error: 'method_not_allowed' });
-  }
-  // No authenticated session verifier is installed in card 1.
-  // The safe state is to reject EVERY unauthenticated / forged-cookie request.
-  return res.status(401).json({ error: 'authentication_required' });
+// Task 08 Card 3: load server-only private notes AFTER checking a live database session.
+import {getSession,edge} from './auth.js';
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','private, no-store, max-age=0');
+ res.setHeader('Pragma','no-cache');
+ res.setHeader('X-Content-Type-Options','nosniff');
+ if(!['GET','HEAD'].includes(req.method)){
+  res.setHeader('Allow','GET, HEAD');return res.status(405).json({error:'method_not_allowed'});
+ }
+ const token=getSession(req);
+ if(!token)return res.status(401).json({error:'authentication_required'});
+ const check=await edge('validate',{session:token});
+ if(check.status!==200||check.data.authenticated!==true)
+  return res.status(check.status>=500?503:401).json({error:check.status>=500?'auth_server_unavailable':'authentication_required'});
+ let notes;
+ try{
+  notes=JSON.parse(process.env.T08_PRIVATE_NOTES_JSON||'[]');
+  if(!Array.isArray(notes)||notes.length<3)throw Error('missing_private_notes');
+ }catch{return res.status(503).json({error:'private_notes_not_configured'});}
+ if(req.method==='HEAD')return res.status(200).end();
+ return res.status(200).json({private:true,items:notes});
 }
