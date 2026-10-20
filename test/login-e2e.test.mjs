@@ -119,3 +119,59 @@ test('live WebAuthn verification code requires server signature before inserting
  assert.ok(s.indexOf('verifyAuthenticationResponse({')<s.indexOf("db.rpc('t08_open_login_session'"));
  assert.ok(s.includes('session_credential_removed'));
 });
+
+
+test('site provides a prominent sticky public/private login ribbon with real actions',()=>{
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('id="sessionRibbon"'));
+ assert.ok(html.includes('id="sessionRibbonTitle"'));
+ assert.ok(html.includes('id="sessionRibbonDetail"'));
+ assert.ok(html.includes('id="sessionLogin"'));
+ assert.ok(html.includes('id="sessionLogout"'));
+ assert.match(html,/\.sessionRibbon\{position:sticky;top:0/);
+ assert.ok(html.includes('공개 영역 · 누구나 열람'));
+ assert.ok(html.includes('비공개 영역 · 접근 제한'));
+});
+test('initial visitor sees logged-out ribbon and button to authenticate',async()=>{
+ const h=harness();
+ await flush();
+ assert.equal(h.el('sessionRibbon').dataset.state,'loggedOut');
+ assert.match(h.el('sessionRibbonTitle').textContent,/로그아웃/);
+ assert.equal(h.el('sessionLogin').hidden,false);
+ assert.equal(h.el('sessionLogin').disabled,false);
+ assert.equal(h.el('sessionLogout').hidden,true);
+});
+test('header login button uses actual WebAuthn and displays owner and horse2',async()=>{
+ const h=harness();
+ await flush();
+ await h.el('sessionLogin').events.click();
+ await flush();
+ assert.equal(h.info.logins,1);
+ assert.equal(h.el('sessionRibbon').dataset.state,'authenticated');
+ assert.match(h.el('sessionRibbonTitle').textContent,/owner · horse2/);
+ assert.match(h.el('sessionRibbonDetail').textContent,/동일한 개인 자료실 접근 권한/);
+ assert.equal(h.el('sessionLogin').hidden,true);
+ assert.equal(h.el('sessionLogout').hidden,false);
+ assert.equal(h.el('sessionLogout').disabled,false);
+ assert.equal(h.el('vault').children.length,3);
+});
+test('header logout button revokes current login and relocks vault',async()=>{
+ const h=harness();
+ await flush();
+ await h.el('sessionLogin').events.click();
+ await flush();
+ await h.el('sessionLogout').events.click();
+ await flush();
+ assert.equal(h.info.loggedIn,false);
+ assert.equal(h.el('sessionRibbon').dataset.state,'loggedOut');
+ assert.equal(h.el('sessionLogin').hidden,false);
+ assert.equal(h.el('sessionLogout').hidden,true);
+ assert.equal(h.el('vault').children.length,1);
+});
+test('header indicates unknown status when backend unavailable, not false logout',async()=>{
+ const h=harness({outage:true});
+ await flush();
+ assert.equal(h.el('sessionRibbon').dataset.state,'error');
+ assert.match(h.el('sessionRibbonTitle').textContent,/확인 실패/);
+ assert.doesNotMatch(h.el('sessionRibbonTitle').textContent,/로그아웃/);
+});

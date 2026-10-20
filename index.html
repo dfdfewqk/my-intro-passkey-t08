@@ -41,6 +41,21 @@ html{scroll-behavior:smooth}
 #manageKeysPanel:target{outline:2px solid #b6c8eb;outline-offset:4px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
+/* Always-visible session indicator: site owner identity, not Google account identity. */
+.sessionRibbon{position:sticky;top:0;z-index:30;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+ margin:0 0 20px;padding:13px 16px;border:1px solid #cbd6e5;border-radius:13px;background:#f5f7fb;box-shadow:0 3px 16px #1f3c650d}
+.sessionIdentity{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.sessionIdentityText{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sessionIdentityText strong{font-size:1rem}
+.sessionIdentityText span{font-size:.83rem;color:#566780}
+.sessionDot{display:inline-block;flex:none;width:12px;height:12px;border-radius:50%;background:#8996ac;box-shadow:0 0 0 3px #dfe5ed}
+.sessionRibbonActions{display:flex;gap:8px;align-items:center}
+.sessionRibbonActions .button{padding:9px 13px}
+.sessionRibbon[data-state="authenticated"]{background:#ecf8f0;border-color:#9fceb0}
+.sessionRibbon[data-state="authenticated"] .sessionDot{background:#1b8753;box-shadow:0 0 0 3px #c9ead6}
+.sessionRibbon[data-state="error"]{background:#fff7e9;border-color:#e9d1a4}
+.sessionRibbon[data-state="error"] .sessionDot{background:#c88818;box-shadow:0 0 0 3px #fcebc7}
+@media(max-width:540px){.sessionRibbon{gap:10px;padding:12px}.sessionRibbonActions{width:100%}.sessionRibbonActions .button{width:100%;justify-content:center}}
 [hidden]{display:none!important}
 .keyGate{margin:16px 0;padding:18px;border-radius:14px;border:1px solid #b8cbee;background:#edf4ff}
 .keyGate p{font-size:.94rem;color:#375177;line-height:1.65}
@@ -52,6 +67,19 @@ html{scroll-behavior:smooth}
 </head>
 <body><div class="wrap">
 <header><span class="brand">내 소개 / 개인 자료실</span><span class="pill">과제 8 · 카드 4</span></header>
+<div class="sessionRibbon" id="sessionRibbon" data-state="checking" role="region" aria-label="현재 사이트 로그인 상태">
+  <div class="sessionIdentity">
+    <span class="sessionDot" aria-hidden="true"></span>
+    <div class="sessionIdentityText">
+      <strong id="sessionRibbonTitle" role="status" aria-live="polite">로그인 확인 중…</strong>
+      <span id="sessionRibbonDetail">비공개 자료실 접근 상태를 확인하고 있습니다.</span>
+    </div>
+  </div>
+  <div class="sessionRibbonActions">
+    <button class="button" id="sessionLogin" type="button" disabled>패스키 로그인</button>
+    <button class="button secondary" id="sessionLogout" type="button" hidden disabled>로그아웃</button>
+  </div>
+</div>
 <h1>공개 소개는 그대로, 내 기록은 따로</h1>
 <p class="lead">왼쪽 소개 페이지는 누구나 볼 수 있습니다. 오른쪽 개인 자료실은 서버에서 접근을 차단하며, 비공개 문서 본문은 인증하기 전에는 내려오지 않습니다.</p>
 <main class="grid">

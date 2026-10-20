@@ -1,7 +1,8 @@
 // Task 08 Card 3: passwordless authentication, with HttpOnly server session.
 const byId=id=>document.getElementById(id);
 const button=id=>byId(id);
-const state={busy:false,active:null,lastChallenge:null,loginAbort:null};
+const state={busy:false,active:null,lastChallenge:null,loginAbort:null,
+ sessionMode:'checking',sessionName:''};
 const events=[];
 let authRevision=0;
 let privateRequest=null;
@@ -48,8 +49,34 @@ function serialize(credential){
    userHandle:response.userHandle?encode(response.userHandle):null},
   clientExtensionResults:credential.getClientExtensionResults?.()||{}};
 }
+function renderSessionRibbon(mode=state.sessionMode,name=state.sessionName){
+ state.sessionMode=mode;
+ state.sessionName=name;
+ const panel=byId('sessionRibbon');
+ panel.dataset.state=mode;
+ const title=byId('sessionRibbonTitle');
+ const details=byId('sessionRibbonDetail');
+ if(mode==='authenticated'){
+  title.textContent='● 로그인됨 · owner · '+name;
+  details.textContent='인증한 패스키: '+name+' · 동일한 개인 자료실 접근 권한';
+ }else if(mode==='error'){
+  title.textContent='! 로그인 상태 확인 실패';
+  details.textContent='서버 연결을 확인하지 못했습니다. 로그인 여부를 확정하지 않습니다.';
+ }else if(mode==='checking'){
+  title.textContent='로그인 확인 중…';
+  details.textContent='비공개 자료실 접근 상태를 확인하고 있습니다.';
+ }else{
+  title.textContent='○ 로그아웃 · 개인 자료실 잠김';
+  details.textContent='공개 소개는 누구나 볼 수 있고, 개인 자료실은 로그인 후에만 열립니다.';
+ }
+ button('sessionLogin').hidden=mode==='authenticated';
+ button('sessionLogout').hidden=mode!=='authenticated';
+ button('sessionLogin').disabled=state.busy||mode==='checking';
+ button('sessionLogout').disabled=state.busy||mode!=='authenticated';
+}
 function busy(value){
  state.busy=value;
+ renderSessionRibbon();
  for(const id of ['loginPasskey','loginCompare','loginFake'])button(id).disabled=value;
  button('logoutPasskey').disabled=value||button('logoutPasskey').dataset.logged!=='yes';
 }
@@ -94,6 +121,9 @@ async function updateStatus(){
   if(revision===authRevision){
    byId('loginState').textContent='로그인 상태 확인 오류';
    report('로그인 상태 확인 요청이 실패했습니다: '+e.message);
+   button('logoutPasskey').dataset.logged='no';
+   button('logoutPasskey').disabled=true;
+   renderSessionRibbon('error','');
    lockVault();
   }
   return false;
@@ -102,12 +132,17 @@ async function updateStatus(){
  if(status.code>=500){
   byId('loginState').textContent='로그인 상태 확인 일시 오류 · 로그아웃으로 판정하지 않음';
   report('인증 서버 확인 오류 HTTP '+status.code+' · 잠시 후 다시 확인하세요.');
+  button('logoutPasskey').dataset.logged='no';
+  button('logoutPasskey').disabled=true;
+  renderSessionRibbon('error','');
   lockVault();
   return false;
  }
  const ok=status.code===200&&status.data.authenticated===true;
  const loginName=ok?String(status.data.passkeyName||'등록된 패스키'):'';
  byId('loginState').textContent=ok?'로그인 중 · '+loginName+' · 서버 검증 완료':'로그아웃 상태 · 비공개 내용 잠김';
+ button('loginPasskey').textContent=ok?'다른 패스키로 다시 로그인':'패스키로 로그인';
+ renderSessionRibbon(ok?'authenticated':'loggedOut',loginName);
  button('logoutPasskey').dataset.logged=ok?'yes':'no';
  button('logoutPasskey').disabled=!ok||state.busy;
  if(!ok)lockVault();
@@ -211,11 +246,17 @@ async function logout(){
   report(result.code===200?'로그아웃 완료 · 기존 서버 세션 폐기 후 동일 값 재사용 결과를 기록했습니다.':
    '로그아웃 서버 응답 HTTP '+result.code);
   await updateStatus();
- }catch(e){report('로그아웃 확인 오류: '+e.message);}
- finally{busy(false);}
+ }catch(e){
+  report('로그아웃 확인 오류: '+e.message);
+  renderSessionRibbon('error','');
+  lockVault();
+ }finally{busy(false);}
 }
 function start(){
  window.t08StartLogin=login;
+ renderSessionRibbon('checking','');
+ button('sessionLogin').addEventListener('click',login);
+ button('sessionLogout').addEventListener('click',logout);
  button('loginPasskey').addEventListener('click',login);
  button('loginCompare').addEventListener('click',compare);
  button('loginFake').addEventListener('click',failedAndReplay);
