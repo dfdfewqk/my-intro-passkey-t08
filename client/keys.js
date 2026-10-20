@@ -291,7 +291,20 @@ async function probeDeleted(){
  }catch(e){sayKeys('삭제 시험 오류: '+e.message);}
  finally{setKeyBusy(false);}
 }
+function updateProviderHelp(){
+ const mode=keyEl('additionalKeyProvider').value;
+ const message=mode==='security_key'
+  ?'외장 보안 키: 실제 USB/NFC FIDO2 장치가 있어야 합니다. 서버가 cross-platform과 security-key를 요청하지만 브라우저 선택창은 환경에 따라 다를 수 있습니다.'
+  :mode==='device'
+  ?'이 PC 장치: Windows Hello 같은 플랫폼 인증기를 우선 요청합니다. Chrome이 Google 비밀번호 관리자를 제안하면 브라우저 창에서 다른 인증 방법을 확인하세요.'
+  :mode==='google'
+  ?'Google 비밀번호 관리자: 어떤 Google 계정을 사용할지는 사이트가 지정할 수 없습니다. 이미 등록된 horse가 있는 동일 저장소로 다시 연결되면 중복 등록이 거절됩니다.'
+  :'저장 위치를 선택하세요. 선택 항목은 등록 요청에 반영되지만, 최종 기기·계정 선택은 브라우저가 결정할 수 있습니다.';
+ keyEl('keyProviderHelp').textContent=message;
+}
 function initKeys(){
+ keyEl('additionalKeyProvider').addEventListener('change',updateProviderHelp);
+ updateProviderHelp();
  keyEl('keyUnlock').addEventListener('click',async()=>{
   if(keyOperationBusy)return;
   const start=window.t08StartLogin;
