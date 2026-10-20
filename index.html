@@ -96,7 +96,7 @@ html{scroll-behavior:smooth}
 </main>
 <section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
 <span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
-<h2 id="manageKeysTitle">두 번째 패스키 추가 및 관리</h2>
+<h2 id="manageKeysTitle">두 번째 패스키 추가 및 관리</h2><p class="note">다른 Google 계정 B에 저장하려면 <a href="#googleProfilePanel"><strong>아래 「Chrome 프로필 B 등록」</strong></a>을 사용하세요. 이 일반 등록 버튼으로는 현재 Chrome 프로필의 Google 계정을 바꿀 수 없습니다.</p>
 <div class="keyGate" id="keyGate" role="region" aria-label="패스키 관리 로그인">
 <strong>선택 사항 · 기존 패스키 로그인</strong>
 <p id="keyGateStatus">로그인하지 않았어도 아래의 새 패스키 이름과 저장 위치를 미리 선택할 수 있습니다. <strong>패스키 추가 등록</strong>을 누르면 기존 패스키로 본인 확인한 뒤 새 등록을 진행합니다.</p>
@@ -124,7 +124,7 @@ html{scroll-behavior:smooth}
 <option value="bitwarden" selected>Bitwarden 확장 프로그램 · USB/Google 계정 추가 불필요</option>
 <option value="phone">다른 휴대전화 연결 시도 · QR 제공은 브라우저에 따라 다름</option>
 <option value="device">이 PC 인증 장치 · Windows Hello 우선</option>
-<option value="google">Google 비밀번호 관리자 (계정 선택은 Chrome에서)</option>
+<option value="google">현재 Chrome 프로필의 Google 비밀번호 관리자</option>
 <option value="security_key">별도 물리 보안 키 · USB/NFC 장치 필요</option>
 </select></label>
 </div>
@@ -138,6 +138,34 @@ html{scroll-behavior:smooth}
 <h2 style="margin-top:24px">등록·삭제 검증 기록</h2>
 <pre id="keyManagementEvidence" class="status evidence">기록 대기 중…</pre>
 <p class="note"><strong>패스키 0개인 경우:</strong> 서버 공개키로 서명을 검증할 방법이 없으므로 로그인할 수 없습니다. 마지막 패스키 삭제는 금지되며, 모든 기기에서 패스키를 잃었다면 별도의 관리자 본인 확인이 필요합니다. 공개 자가 초기화 버튼은 제공하지 않습니다.</p>
+</section>
+<section class="panel" id="googleProfilePanel" style="margin-top:22px" aria-labelledby="googleProfileTitle">
+<span class="tag">카드 4 · 다른 Google 계정으로 등록</span>
+<h2 id="googleProfileTitle">Chrome 프로필 B에 두 번째 패스키 저장</h2>
+<p class="note">Google 이메일을 선택하는 버튼은 WebAuthn에 없습니다. 대신 <strong>Chrome 프로필 A(기존 horse)</strong>에서 5분짜리 등록 링크를 발급하고, 그 링크를 <strong>Google 계정 B로 로그인한 별도 Chrome 프로필</strong>에서 열어 새 패스키를 생성할 수 있습니다. 사이트 계정은 여전히 <strong>owner 1개</strong>입니다.</p>
+<div id="profileSender">
+<label for="profileNewName"><strong>다른 Google 계정에 등록할 새 패스키 이름</strong></label>
+<div class="actions"><input id="profileNewName" type="text" value="horse2" maxlength="48" placeholder="새 패스키 이름" style="min-width:230px;flex:1;padding:12px;border:1px solid #b9c8db;border-radius:10px">
+<button id="profileIssue" class="button" type="button">계정 B용 등록 링크 발급</button></div>
+<div id="profileLinkBox" hidden>
+<p class="note">등록 권한이 있는 일회성 링크입니다. <strong>5분 안에</strong> 계정 B의 Chrome 프로필로 이동하세요. 링크를 다른 사람에게 공유하지 마세요.</p>
+<div class="actions"><input id="profileLink" type="text" readonly aria-label="계정 B에서 열어야 할 일회성 등록 링크" style="min-width:230px;flex:1;padding:12px;border:1px solid #b9c8db;border-radius:10px">
+<button id="profileCopy" class="button secondary" type="button" disabled>링크 복사</button></div>
+</div>
+<p class="note">순서: ① 계정 A 프로필에서 위 버튼으로 링크 발급 ② Chrome 오른쪽 위 프로필 메뉴에서 계정 B로 전환 ③ B 프로필 주소창에 링크 붙여넣기 ④ B의 Google 비밀번호 관리자에서 새 패스키 생성.</p>
+</div>
+<div id="profileReceiver" hidden>
+<p class="note">계정 B 프로필에서 들어온 일회성 등록 화면입니다.</p>
+<p><strong>등록할 이름: </strong><span id="profileReceiverName">확인 중</span></p>
+<p id="profileReceiverStatus" class="note">링크 확인 중</p>
+<div class="actions">
+<button class="button" id="profileEnrollBtn" type="button" disabled>이 Chrome 프로필에 새 패스키 등록</button>
+<button class="button secondary" id="profileAbortBtn" type="button">등록 창 취소</button>
+</div>
+</div>
+<div class="status" role="status" aria-live="polite" id="profileMessage">먼저 Chrome 프로필 A에서 기존 horse 패스키로 로그인하고 등록 링크를 발급하세요.</div>
+<pre class="status evidence" id="profileEvidence">증거 기록 대기 · 링크 원문·세션 값은 표시하지 않음</pre>
+<p class="note"><strong>주의:</strong> Chrome 프로필 B에 Google 계정 B가 실제로 선택되어 있어야 합니다. Gmail 탭에서만 계정을 변경한 것으로는 비밀번호 관리자 저장소가 바뀌지 않을 수 있습니다. 기존 horse는 삭제하지 마세요.</p>
 </section>
 <section class="panel" id="registerPanel" hidden style="margin-top:22px" aria-labelledby="registrationTitle">
 <span class="tag">카드 2 · 패스키 등록</span>
@@ -203,4 +231,5 @@ document.getElementById('check').addEventListener('click',async()=>{
 <script type="module" src="/client/enroll.js"></script>
 <script type="module" src="/client/login.js"></script>
 <script type="module" src="/client/keys.js"></script>
+<script type="module" src="/client/profile.js"></script>
 </body></html>
