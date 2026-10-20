@@ -8,7 +8,7 @@ const keyCode=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8
 const loginCode=fs.readFileSync(new URL('../client/login.js',import.meta.url),'utf8');
 const enrollCode=fs.readFileSync(new URL('../client/enroll.js',import.meta.url),'utf8');
 
-function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}={}){
+function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false,initialKeys=1,staleRemoval=false,confirmDeletion=true}={}){
  const elements=new Map(), listeners=new Map();
  class FakeElement{
   constructor(id=''){
@@ -22,9 +22,12 @@ function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}
   focus(){this.focused=true;}
  }
  const el=id=>{if(!elements.has(id))elements.set(id,new FakeElement(id));return elements.get(id);};
- let signedIn=false,firstResolve,requestCount=0,authPrompts=0,createCalls=0,cancelCalls=0;
+ let signedIn=false,firstResolve,requestCount=0,authPrompts=0,createCalls=0,cancelCalls=0,removeCalls=0;
+ const confirmations=[];
  let created=0,pendingCreateResolve;
  const validKeys=[{id:'credential-horse',name:'horse',createdAt:'2026-10-20T00:55:49Z',storageProvider:'google'}];
+ for(let i=1;i<initialKeys;i++)validKeys.push({id:'credential-horse2-'+i,name:'horse2',
+  createdAt:'2026-10-20T02:12:00Z',storageProvider:'google'});
  const getJson=(status,body)=>({status,json:async()=>body});
  const fakeFetch=async(_url,{body}={})=>{
   const request=JSON.parse(body||'{}');
@@ -44,6 +47,15 @@ function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}
   if(request.action==='cancel'){
    cancelCalls++;return getJson(200,{canceled:true});
   }
+  if(request.action==='remove'){
+   removeCalls++;
+   if(staleRemoval&&removeCalls===1)return getJson(403,{error:'recent_login_required'});
+   if(validKeys.length<=1)return getJson(409,{error:'last_passkey_protected'});
+   const idx=validKeys.findIndex(k=>k.id===request.credentialId);
+   if(idx<0)return getJson(404,{error:'credential_not_found'});
+   validKeys.splice(idx,1);
+   return getJson(200,{removed:true,remaining:validKeys.length,sessionRevoked:false});
+  }
   if(request.action==='verify'){
    assert.equal(signedIn,true);
    assert.equal(request.name,'horse2');
@@ -56,6 +68,7 @@ function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}
  const window={
    PublicKeyCredential:class{},
    isSecureContext:true,
+   confirm(text){confirmations.push(text);return confirmDeletion;},
    addEventListener(type,fn){if(!listeners.has(type))listeners.set(type,[]);listeners.get(type).push(fn);},
    dispatchEvent(event){for(const fn of listeners.get(event.type)||[])fn(event);},
    t08StartLogin:async()=>{authPrompts++;if(!loginSucceeds)return false;
@@ -83,7 +96,7 @@ function simulatedClient({holdInitial=false,loginSucceeds=true,holdCreate=false}
  vm.runInContext(keyCode,context);
  return {el,window,context,setBusy:context.setKeyBusy,
   setSignedIn(value){signedIn=value;window.dispatchEvent({type:'t08-auth-state',detail:{authenticated:value}});},
-  get stats(){return {authPrompts,createCalls,cancelCalls,created};},
+  get stats(){return {authPrompts,createCalls,cancelCalls,created,removeCalls,confirmations,remaining:validKeys.length};},
   releaseInitial:()=>firstResolve?.(getJson(401,{error:'authentication_required'})),
   releaseCreate:()=>pendingCreateResolve?.(null)};
 }
@@ -174,4 +187,65 @@ test('Stale private data fetches are ignored and old vault contents are locked a
  assert.ok(loginCode.includes('revision!==authRevision'));
  assert.ok(loginCode.includes('privateRequest.abort()'));
  assert.ok(loginCode.includes('if(!ok)lockVault()'));
+});
+
+
+test('duplicate horse2 keys display distinct credential IDs and delete buttons',async()=>{
+ const env=simulatedClient({initialKeys:4});
+ await flush();
+ env.setSignedIn(true);
+ await flush();
+ const list=env.el('keyListDetailed').children;
+ assert.equal(list.length,4);
+ const names=list.slice(1).map(c=>c.children[0].children[0].textContent);
+ const deletes=list.slice(1).map(c=>c.children[0].children[1].textContent);
+ assert.equal(new Set(names).size,3);
+ assert.equal(new Set(deletes).size,3);
+ assert.ok(names.every(x=>x.includes('ID credential-')));
+});
+test('stale login on deletion automatically reauthenticates and deletes only confirmed credential',async()=>{
+ const env=simulatedClient({initialKeys:4,staleRemoval:true});
+ await flush();
+ env.setSignedIn(true);
+ await flush();
+ const article=env.el('keyListDetailed').children[2];
+ const button=article.children[0].children[1];
+ await button.handlers.click();
+ await flush();
+ assert.equal(env.stats.removeCalls,2);
+ assert.equal(env.stats.authPrompts,1);
+ assert.equal(env.stats.confirmations.length,1);
+ assert.ok(env.stats.confirmations[0].includes('credential-h'));
+ assert.equal(env.stats.remaining,3);
+ assert.ok(env.el('keyManagementMessage').textContent.includes('삭제했습니다'));
+});
+test('canceling reauthentication never deletes the selected key',async()=>{
+ const env=simulatedClient({initialKeys:4,staleRemoval:true,loginSucceeds:false});
+ await flush();
+ env.setSignedIn(true);
+ await flush();
+ await env.el('keyListDetailed').children[1].children[0].children[1].handlers.click();
+ await flush();
+ assert.equal(env.stats.removeCalls,1);
+ assert.equal(env.stats.authPrompts,1);
+ assert.equal(env.stats.remaining,4);
+});
+test('declining deletion confirmation never calls delete API',async()=>{
+ const env=simulatedClient({initialKeys:4,confirmDeletion:false});
+ await flush();
+ env.setSignedIn(true);
+ await flush();
+ await env.el('keyListDetailed').children[1].children[0].children[1].handlers.click();
+ await flush();
+ assert.equal(env.stats.removeCalls,0);
+ assert.equal(env.stats.remaining,4);
+});
+test('last passkey always has disabled delete button',async()=>{
+ const env=simulatedClient({initialKeys:1});
+ await flush();
+ env.setSignedIn(true);
+ await flush();
+ const button=env.el('keyListDetailed').children[0].children[0].children[1];
+ assert.equal(button.disabled,true);
+ assert.ok(button.textContent.includes('보호됨'));
 });

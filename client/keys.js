@@ -90,6 +90,8 @@ async function refreshKeys(){
  list.replaceChildren();
  keyEl('keyAdd').disabled=keyOperationBusy;
  keyEl('keyCountDetailed').textContent='등록된 패스키: '+keys.length+'개';
+ const nameCounts=new Map();
+ for(const k of keys)nameCounts.set(k.name,(nameCounts.get(k.name)||0)+1);
  if(!keys.length){
   const text=document.createElement('p');
   text.textContent='패스키가 0개라면 이 사이트에 로그인할 방법이 없습니다. 관리자 확인을 거친 별도 복구가 필요합니다. 공개 자가 복구는 허용하지 않습니다.';
@@ -98,9 +100,14 @@ async function refreshKeys(){
   const card=document.createElement('article');
   card.className='keyItem';
   const top=document.createElement('div');top.className='keyItemHeader';
-  const name=document.createElement('strong');name.textContent=item.name;
+  const name=document.createElement('strong');
+  const duplicateName=(nameCounts.get(item.name)||0)>1;
+  const shortId=item.id.slice(0,12);
+  name.textContent=item.name+(duplicateName?' · ID '+shortId+'…':'');
   const remove=document.createElement('button');remove.type='button';
-  remove.className='button secondary';remove.textContent=keys.length<=1?'마지막 패스키 (보호됨)':'이 패스키 삭제';
+  remove.className='button secondary';
+  remove.textContent=keys.length<=1?'마지막 패스키 (보호됨)':
+   '이 패스키 삭제'+(duplicateName?' · '+shortId+'…':'');
   remove.disabled=keys.length<=1;
   remove.addEventListener('click',()=>removePasskey(item,keys.length));
   top.append(name,remove);
@@ -114,7 +121,7 @@ async function refreshKeys(){
  }
  keyEl('keyZeroRule').textContent=keys.length===1?
   '현재 마지막 1개만 남아 있어 삭제할 수 없습니다. 먼저 다른 패스키를 등록하세요.':
-  '마지막 패스키 삭제는 시스템이 차단합니다. 0개가 되면 로그인 불가이므로 공개 초기화 기능은 제공하지 않습니다.';
+  '삭제 시 세션이 오래되었다면 기존 패스키로 다시 로그인한 뒤 선택한 패스키만 삭제합니다. 마지막 1개는 보호됩니다.';
  addEvidence('서버 패스키 목록 조회 HTTP 200 / 등록 '+keys.length+'개');
  return true;
 }
@@ -258,26 +265,63 @@ async function addPasskey(){
 }
 async function removePasskey(item,count){
  if(count<=1){sayKeys('마지막 패스키는 삭제할 수 없습니다.');return;}
- const accepted=window.confirm('정말 "'+item.name+'" 패스키를 삭제하시겠습니까?\n\n다른 패스키로 이미 로그인할 수 있음을 확인한 후 삭제하세요. 삭제하면 이 패스키로는 서버 로그인할 수 없습니다. 15분 이내의 새 로그인 필요.');
+ const which='"'+item.name+'" (ID '+item.id.slice(0,12)+'…)';
+ const accepted=window.confirm(
+  '정말 '+which+' 패스키를 삭제하시겠습니까?\n\n'+
+  '같은 이름의 패스키가 있을 수 있으니 ID와 등록 날짜를 확인하세요.\n'+
+  '삭제하면 해당 패스키로는 더 이상 서버에 로그인할 수 없습니다.\n'+
+  '필요하면 기존 패스키로 다시 본인 인증합니다.'
+ );
  if(!accepted)return;
  setKeyBusy(true);
  try{
-  const result=await keysApi('remove',{credentialId:item.id});
-  addEvidence('패스키 삭제 요청 "'+item.name+'" / HTTP '+result.status+' / '+(result.data.error||'삭제됨'));
+  let result=await keysApi('remove',{credentialId:item.id});
+  // Session creation time is enforced by the database (15 minutes).
+  // If it is stale, reauthenticate once and retry the SAME credential only.
+  if([401,403].includes(result.status)&&
+   ['recent_login_required','session_expired_or_revoked','authentication_required'].includes(result.data.error)){
+   sayKeys('보안을 위해 최근 로그인이 필요합니다. 기존 패스키로 본인 확인하면 선택한 '+which+'만 삭제합니다.');
+   const login=window.t08StartLogin;
+   if(typeof login!=='function'||!await login()){
+    sayKeys('패스키 재로그인이 취소되어 '+which+' 삭제를 진행하지 않았습니다. 기존 패스키는 그대로 있습니다.');
+    return;
+   }
+   // Revalidate the inventory before retrying to avoid deleting the last key.
+   const fresh=await keysApi('list');
+   if(fresh.status!==200||!Array.isArray(fresh.data.passkeys)){
+    sayKeys('재로그인 후 목록을 확인하지 못해 삭제하지 않았습니다. 패스키 목록을 새로고침해 주세요.');
+    return;
+   }
+   if(fresh.data.passkeys.length<=1){
+    sayKeys('마지막 패스키 보호: 삭제할 수 없습니다.');
+    return;
+   }
+   if(!fresh.data.passkeys.some(k=>k.id===item.id)){
+    sayKeys('선택한 '+which+'는 이미 서버에 없습니다. 목록을 새로고침하세요.');
+    await refreshKeys();
+    return;
+   }
+   result=await keysApi('remove',{credentialId:item.id});
+  }
+  addEvidence('패스키 삭제 요청 '+which+' / HTTP '+result.status+' / '+(result.data.error||'삭제됨'));
   if(result.status!==200||!result.data.removed){
-   const msg=result.data.error==='recent_login_required'?'삭제하려면 로그인한 지 15분이 넘지 않아야 합니다. 패스키로 다시 로그인하세요.':
+   const msg=result.data.error==='recent_login_required'?'최근 로그인 확인이 필요합니다. 로그인이 완료되지 않아 삭제하지 않았습니다.':
      result.data.error==='last_passkey_protected'?'마지막 패스키는 삭제할 수 없습니다.':
+     result.data.error==='session_expired_or_revoked'?'로그인 세션이 만료되었습니다. 기존 패스키로 다시 로그인하세요.':
      result.data.error||'삭제 거절';
-   sayKeys(msg);return;
+   sayKeys(which+' 삭제 실패: '+msg);
+   return;
   }
   lastRemoved=item.id;
   sessionStorage.setItem('t08_last_deleted_credential',item.id);
-  sayKeys('"' +item.name+'" 서버 등록을 삭제했습니다. 삭제된 패스키는 로그인할 수 없습니다.'+
-   (result.data.sessionRevoked?' 현재 세션도 폐기되었습니다. 남은 패스키로 다시 로그인하세요.':''));
+  sayKeys(which+' 서버 등록을 삭제했습니다. 해당 패스키는 서버 로그인에 사용할 수 없습니다.'+
+   (result.data.sessionRevoked?' 로그인 세션도 폐기되어 남은 패스키로 다시 로그인해야 합니다.':''));
   if(result.data.sessionRevoked){
    lockManagement();
    window.dispatchEvent(new CustomEvent('t08-keys-session-revoked'));
   }else await refreshKeys();
+ }catch(e){
+  sayKeys(which+' 삭제 처리 중 오류: '+(e.message||'unknown')+'. 삭제 여부를 확인하려면 목록을 새로고침하세요.');
  }finally{setKeyBusy(false);}
 }
 async function probeDeleted(){
