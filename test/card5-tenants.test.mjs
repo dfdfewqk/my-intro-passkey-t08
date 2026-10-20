@@ -100,18 +100,17 @@ test('C41 tenant isolation is server-side, credential owners come from verified 
  assert.ok(edge.includes("ownerId:keyRow.owner_id"));
  assert.ok(edge.includes("in('owner_id',[1,2])"));
  assert.ok(keys.includes("eq('owner_id',active.owner_id)"));
- assert.ok(keys.includes("t08_split_horse2_to_owner2"));
+ assert.ok(!keys.includes("t08_split_horse2_to_owner2"));
 });
-test('split requires current horse2 owner signed session and user confirmation on page',()=>{
+test('Card 5 creates a third credential while preserving the two owner passkeys',()=>{
  const page=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
- const client=fs.readFileSync(new URL('../client/keys.js',import.meta.url),'utf8');
- const migration=fs.readFileSync(new URL('../supabase/migrations/20261020_card5_two_site_accounts.sql',import.meta.url),'utf8');
- assert.ok(page.includes('id="accountSplitButton"'));
- assert.ok(client.includes("window.confirm('카드 5 계정 분리:"));
- assert.ok(client.includes("info.passkeyName!=='horse2'"));
- assert.ok(client.includes("ownerId!==1"));
- assert.ok(migration.includes("the_name<>'horse2'"));
- assert.ok(migration.includes("keys_in_owner<2"));
- assert.ok(migration.includes("second_account_already_has_passkey"));
- assert.ok(migration.includes("revoked_at=now()"));
+ const owner2=fs.readFileSync(new URL('../client/owner2.js',import.meta.url),'utf8');
+ const server=fs.readFileSync(new URL('../supabase/functions/t08-owner2/index.ts',import.meta.url),'utf8');
+ assert.ok(page.includes('id="owner2CreateButton"'));
+ assert.ok(page.includes('horse와 horse2'));
+ assert.ok(owner2.includes('navigator.credentials.create'));
+ assert.ok(owner2.includes("call('verify'"));
+ assert.ok(server.includes('verifyRegistrationResponse({'));
+ assert.ok(server.includes("'t08_initialize_owner2_passkey'"));
+ assert.ok(!page.includes('horse2를 별도 사이트 계정 owner2로 분리'));
 });
