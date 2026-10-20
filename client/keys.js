@@ -1,6 +1,8 @@
 // Card 4: second passkey enrollment, safe removal, and server-verified key inventory.
 const keyEl=id=>document.getElementById(id);
 let pendingId=null,waiter=null,lastRemoved=null,keyAuthorized=false;
+let inventoryRevision=0;
+let keyOperationBusy=false;
 const evidence=[];
 const providerLabels={google:'구글 비밀번호 관리자',device:'기기 자체 / Windows Hello',
  security_key:'외장 보안 키',unknown:'저장 위치 미확인'};
@@ -35,14 +37,23 @@ function serializeCreated(c){
   clientExtensionResults:c.getClientExtensionResults?.()||{}};
 }
 function setKeyBusy(yes){
+ keyOperationBusy=yes;
  for(const id of ['keyRefresh','keyAdd','keyCancel','keyProbeDeleted']){
   const control=keyEl(id);if(control)control.disabled=yes;
  }
  keyEl('keyCancel').disabled=!yes;
  keyEl('keyAdd').disabled=yes||!keyAuthorized;
+ keyEl('keyUnlock').disabled=yes;
+ keyEl('keyEnrollmentFields').disabled=yes||!keyAuthorized;
 }
 function lockManagement(){
+ ++inventoryRevision;
  keyAuthorized=false;
+ keyEl('keyGate').hidden=false;
+ keyEl('keyGateStatus').textContent='로그아웃 상태입니다. 이곳에서 로그인하면 새 패스키를 이어서 등록할 수 있습니다.';
+ keyEl('keyUnlock').disabled=keyOperationBusy;
+ keyEl('keyEnrollmentFields').disabled=true;
+ keyEl('keyCountDetailed').textContent='로그인 후 패스키 목록을 확인할 수 있습니다.';
  keyEl('keyListDetailed').replaceChildren();
  const node=document.createElement('p');node.className='note';
  node.textContent='로그인 후 두 번째 패스키를 등록할 수 있습니다. 위쪽 로그인 버튼을 먼저 누르세요.';
@@ -51,12 +62,28 @@ function lockManagement(){
  keyEl('keyRefresh').disabled=false;
 }
 async function refreshKeys(){
- const r=await keysApi('list');
- if(r.status===401){lockManagement();
-  sayKeys('로그인하지 않으면 관리할 수 없습니다. 위쪽 「패스키로 로그인」을 누른 뒤 이곳에서 다시 시도하세요.');return false;}
- if(r.status!==200){sayKeys('목록 조회 오류 HTTP '+r.status+' · '+(r.data.error||''));return false;}
+ const revision=++inventoryRevision;
+ let r;
+ try{r=await keysApi('list');}
+ catch(e){
+  if(revision===inventoryRevision)sayKeys('목록 연결 실패: '+e.message+'. 잠시 뒤 새로고침하세요.');
+  return false;
+ }
+ if(revision!==inventoryRevision)return false;
+ if(r.status===401){
+  lockManagement();
+  sayKeys('로그아웃 상태입니다. 바로 위 「기존 패스키로 로그인하고 계속하기」를 누르세요.');
+  return false;
+ }
+ if(r.status!==200){
+  sayKeys('목록 확인 오류 HTTP '+r.status+' · '+(r.data.error||'')+'. 로그인 상태를 확인해 주세요.');
+  return false;
+ }
  const keys=r.data.passkeys||[];
  keyAuthorized=true;
+ keyEl('keyGate').hidden=true;
+ keyEl('keyEnrollmentFields').disabled=keyOperationBusy;
+ keyEl('keyUnlock').disabled=false;
  const list=keyEl('keyListDetailed');
  list.replaceChildren();
  keyEl('keyAdd').disabled=false;
@@ -188,6 +215,25 @@ async function probeDeleted(){
  finally{setKeyBusy(false);}
 }
 function initKeys(){
+ keyEl('keyUnlock').addEventListener('click',async()=>{
+  const start=window.t08StartLogin;
+  if(typeof start!=='function'){
+   sayKeys('로그인 기능이 준비되지 않았습니다. 새로고침하고 다시 시도하세요.');return;
+  }
+  keyEl('keyUnlock').disabled=true;
+  keyEl('keyGateStatus').textContent='기기에서 패스키로 인증하는 중입니다…';
+  try{
+    await start();
+    await refreshKeys();
+    if(keyAuthorized){
+      sayKeys('로그인 성공! 새 이름과 실제 저장 위치를 정하고 「패스키 추가 등록」을 누르세요.');
+      keyEl('additionalKeyName').focus();
+    }else{
+      sayKeys('로그인을 완료하지 못했습니다. 로그인 안내를 확인하고 다시 시도하세요.');
+    }
+  }catch(e){sayKeys('로그인 오류: '+e.message);}
+  finally{keyEl('keyUnlock').disabled=false;}
+ });
  keyEl('keyRefresh').addEventListener('click',refreshKeys);
  keyEl('keyAdd').addEventListener('click',addPasskey);
  keyEl('keyCancel').addEventListener('click',cancelAdd);
@@ -197,6 +243,7 @@ function initKeys(){
   else lockManagement();
  });
  window.addEventListener('t08-keys-session-revoked',()=>lockManagement());
+ window.addEventListener('pageshow',event=>{if(event.persisted)refreshKeys();});
  refreshKeys();
 }
 initKeys();
