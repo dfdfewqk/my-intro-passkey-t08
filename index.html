@@ -123,6 +123,17 @@ html{scroll-behavior:smooth}
 <div id="status" class="status" role="status" aria-live="polite">아직 확인하지 않았습니다.</div>
 </section>
 </main>
+<section class="panel" id="card5Panel" aria-labelledby="card5Title" style="margin-top:22px">
+<span class="tag">카드 5 · 요청과 응답 증거</span>
+<h2 id="card5Title">양방향 개인 자료실 접근 검사</h2>
+<p class="note">서명 검증된 사이트 계정만 자기 비공개 자료를 조회할 수 있습니다. 아래 버튼은 익명 접근, 내 계정 조회, 다른 계정 조회 거절, 거절 전후 건수, URL 계정 번호 위조를 실제 HTTP 요청으로 확인합니다. 비공개 본문은 기록에 출력하지 않습니다.</p>
+<div class="actions">
+<button class="button" type="button" id="card5RunChecks">현재 로그인 계정의 실제 접근 검사</button>
+<button class="button secondary" type="button" id="card5CopyEvidence">검사 결과 복사</button>
+</div>
+<p id="card5CopyMessage" class="note" aria-live="polite">두 계정 양방향 시험은 owner와 owner2에서 각각 한 번씩 실행해야 합니다.</p>
+<pre class="status evidence" id="card5Evidence">먼저 패스키로 로그인해 주세요. 계정 분리가 완료되기 전에는 두 방향을 통과했다고 표시하지 않습니다.</pre>
+</section>
 <section class="panel" id="manageKeysPanel" style="margin-top:22px" aria-labelledby="manageKeysTitle">
 <span class="tag">카드 4 · 기기를 잃어버렸을 때</span>
 <h2 id="manageKeysTitle">패스키 추가 및 계정별 관리</h2>
@@ -272,4 +283,5 @@ document.getElementById('check').addEventListener('click',async()=>{
 <script type="module" src="/client/login.js"></script>
 <script type="module" src="/client/keys.js"></script>
 <script type="module" src="/client/profile.js"></script>
+<script type="module" src="/client/card5.js"></script>
 </body></html>
