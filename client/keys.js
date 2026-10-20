@@ -5,7 +5,7 @@ let inventoryRevision=0;
 let keyOperationBusy=false;
 const evidence=[];
 const providerLabels={google:'구글 비밀번호 관리자',device:'기기 자체 / Windows Hello',
- security_key:'외장 보안 키',unknown:'저장 위치 미확인'};
+ phone:'다른 휴대전화 / QR 인증',security_key:'외장 보안 키',unknown:'저장 위치 미확인'};
 function sayKeys(t){keyEl('keyManagementMessage').textContent=t;}
 function addEvidence(t){evidence.push(new Date().toLocaleTimeString('ko-KR')+' | '+t);
  keyEl('keyManagementEvidence').textContent=evidence.slice(-15).join('\n');}
@@ -193,7 +193,9 @@ async function addPasskey(){
    ' · 기존 패스키 제외 '+(issued.data.options.excludeCredentials?.length||0)+'개'+
    ' · 요청 저장 방식 '+requested+' · authenticatorAttachment '+attachment+
    ' · hints '+(hints.join(',')||'없음'));
-  const guidance=provider==='security_key'
+  const guidance=provider==='phone'
+   ?'휴대전화로 등록하도록 hybrid 방식을 요청했습니다. Chrome에서 휴대전화·QR코드 항목이 나타나면 기존 horse가 없는 별도의 휴대전화 패스키 저장소를 선택하세요. 스마트폰에서도 같은 Google 패스키를 선택하면 중복될 수 있습니다.'
+   :provider==='security_key'
    ?'외장 USB/NFC 보안 키 모드를 요청했습니다. 실제 보안 키를 연결하고 Chrome 창에서 보안 키를 선택하세요. 다른 Google 계정은 USB 보안 키가 아닙니다.'
    :provider==='device'
    ?'기기 내장 인증 방식(Windows Hello 등)을 요청했습니다. 구글 관리자가 나타난다면 Windows Hello/다른 인증 방법을 직접 선택해야 할 수 있습니다.'
@@ -228,7 +230,7 @@ async function addPasskey(){
   const cancelled=['NotAllowedError','AbortError'].includes(e.name);
   if(e.name==='InvalidStateError'){
    addEvidence('기존 패스키 중복 발견 · 브라우저 InvalidStateError · 서버 신규 공개키 저장 없음');
-   sayKeys('새 패스키 등록 불가 (기존 자격증명 중복): Chrome이 이미 등록된 horse 패스키를 가진 저장소를 다시 선택했습니다. 단순히 두 번째 Google 계정이나 외장 보안 키 항목을 고르는 것만으로 저장소가 바뀌지는 않습니다. 실제 다른 보안 키 또는 다른 장치를 선택하세요. 현재 입력값은 유지됩니다.');
+   sayKeys('기존 패스키 중복: Chrome이 이미 horse 자격증명을 가진 저장소를 선택했습니다. 저장 위치 선택만 바꿔서는 다른 패스키가 만들어지지 않습니다. 다른 휴대전화(QR) 방식을 선택하고, 실제로 기존 Google 관리자와 별개인 저장소에서 생성해야 합니다. 기존 horse와 입력 내용은 유지됩니다.');
   }else if(e.name==='NotSupportedError'){
    sayKeys('선택한 인증 장치 방식을 브라우저 또는 기기가 지원하지 않습니다. 실제 사용 가능한 기기 인증 방식으로 바꿔 다시 시도하세요.');
   }else if(cancelled){
@@ -293,7 +295,9 @@ async function probeDeleted(){
 }
 function updateProviderHelp(){
  const mode=keyEl('additionalKeyProvider').value;
- const message=mode==='security_key'
+ const message=mode==='phone'
+  ?'다른 휴대전화: Chrome에 hybrid(휴대전화 연결) 방식을 요청합니다. QR코드가 나오면 휴대전화로 스캔하고 화면 안내를 따르세요. 다른 인증 저장소를 선택해야 두 번째 패스키가 됩니다. QR 제공은 브라우저/기기에 따라 달라질 수 있습니다.'
+  :mode==='security_key'
   ?'외장 보안 키: 실제 USB/NFC FIDO2 장치가 있어야 합니다. 서버가 cross-platform과 security-key를 요청하지만 브라우저 선택창은 환경에 따라 다를 수 있습니다.'
   :mode==='device'
   ?'이 PC 장치: Windows Hello 같은 플랫폼 인증기를 우선 요청합니다. Chrome이 Google 비밀번호 관리자를 제안하면 브라우저 창에서 다른 인증 방법을 확인하세요.'
