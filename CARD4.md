@@ -40,7 +40,7 @@
 
 ## 실제 개발 서버 테스트
 
-- 2026-10-20: `npm test` **34/34 통과**
+- 2026-10-20: `npm test` **37/37 통과**
 - 실제 공개 페이지: HTTP 200
 - 새 카드 4 UI·스크립트 존재: 확인
 - 비인증 상태 `list` / `options` / `remove`: **401 / 401 / 401**
@@ -75,7 +75,7 @@
 5. 세션 만료나 로그아웃 이후 과거 비공개 메모가 브라우저 DOM에 잔존하지 않도록 화면 내용을 초기화하고 이전 fetch 응답은 무시합니다.
 6. `test/ui-flow.test.mjs`에 미인증→패스키 로그인→관리 등록 해제, 오래된 401 역전, 카드 2 UI 비표시, 세션 만료 잠금 등을 회귀 테스트로 추가했습니다.
 
-**검증:** `npm test` 34/34 통과, Node.js 코드 구문 검사 통과, 실제 서비스 HTML·JS HTTP 200, 미인증 `/api/keys`의 목록/등록/삭제/검증 요청 HTTP 401, 부적절한 Origin HTTP 403, 미인증 `/api/private` HTTP 401 확인.
+**검증:** `npm test` 37/37 통과, Node.js 코드 구문 검사 통과, 실제 서비스 HTML·JS HTTP 200, 미인증 `/api/keys`의 목록/등록/삭제/검증 요청 HTTP 401, 부적절한 Origin HTTP 403, 미인증 `/api/private` HTTP 401 확인.
 
 **검증 범위:** 브라우저의 실제 기기 인증 UI 자체는 도구 환경에서 직접 재현하지 않았습니다. 카드 4 실제 두 번째 패스키 등록 및 삭제는 사용자가 기기에서 수행한 다음 DB 기록으로 재검증해야 합니다.
 
@@ -93,3 +93,22 @@
 - 전체 `npm test`: **34개 통과 / 실패 0개**. 실제 운영 서버: 추가 버튼 기본 활성화, 인증 없을 경우 등록 API HTTP 401 유지 확인.
 
 **주의:** 자동 테스트에서의 두 번째 패스키 등록 성공은 WebAuthn 요청을 흉내 낸 시험으로, 새 공개키가 운영 DB에 만들어졌다는 뜻이 아닙니다. 실제 계정에 두 개가 등록되었는지는 기기에서 신규 패스키 생성 후 데이터베이스로 확인해야 합니다.
+
+
+## 2026-10-20 — Google 기존 패스키 자동 선택 중복 오류 수정
+
+사용자는 `외장 보안 키`를 선택했지만 실제로 Chrome이 기존 Google 비밀번호 관리자로 이동했고, `InvalidStateError`가 발생했습니다. 데이터베이스에는 여전히 기존 `horse` 1개만 있었습니다. 서버가 `excludeCredentials`로 기존 자격증명을 올바르게 차단했으므로 이 검사는 제거하지 않았습니다.
+
+**원인:** 기존 저장 위치 선택은 단순 표시용이고, WebAuthn 생성 `options`에서는 `authenticatorAttachment` 또는 `hints`로 선택 장치 유형을 전달하지 않았습니다.
+
+**수정:**
+
+- 클라이언트 Add → 서버 options API에 사용자가 고른 `storageProvider` 전달.
+- 서버: `device`이면 `authenticatorAttachment: platform` 및 `hints: ['client-device']`; `security_key`이면 `authenticatorAttachment: cross-platform` 및 `hints: ['security-key']`.
+- Google 선택은 브라우저 선택 UI에 맡기되, 특정 Google 계정을 사이트가 지정할 수 없음을 안내.
+- 서버 DB `t08_add_challenges.requested_mode`에 선택 모드를 저장하고 등록 검증 때 같은 모드인지 비교.
+- 이미 등록된 키를 제외하는 `excludeCredentials`와 WebAuthn 서명·서버 세션 확인 유지.
+- 브라우저가 보고한 `authenticatorAttachment`를 공개 증거 로그에 표시. 해당 값은 플랫폼/외부 연결 유형에 대한 일반 구분일 뿐 하드웨어 제조사나 Google 계정 인증 근거가 아닙니다.
+- `InvalidStateError` 시 기존 키 중복이라는 설명과 저장소 변경 안내를 제공.
+
+**검증:** 전체 `npm test` 37/37 통과, 구문 검사 통과, 실서비스 화면과 스크립트 HTTP 200, 미인증 옵션 발급 HTTP 401, Edge 함수 최신 배포 활성화. 사용자 장치의 **실제 두 번째 패스키 생성 및 Google 계정 전환은 아직 검증 전**입니다.
